@@ -4,7 +4,7 @@ import { updateTask } from '../task/store.js';
 
 const docker = new Docker();
 
-const WORKER_IMAGE = process.env.JULES_WORKER_IMAGE || 'jules-worker:latest';
+const WORKER_IMAGE = process.env.SQUIRE_WORKER_IMAGE || 'squire-worker:latest';
 
 export interface ContainerOptions {
   task: Task;
@@ -32,7 +32,7 @@ export async function startTaskContainer(options: ContainerOptions): Promise<str
   ];
   
   // Mount tasks directory so container can update task status
-  const tasksDir = process.env.JULES_TASKS_DIR || `${process.cwd()}/tasks`;
+  const tasksDir = process.env.SQUIRE_TASKS_DIR || `${process.cwd()}/tasks`;
   
   const container = await docker.createContainer({
     Image: WORKER_IMAGE,
@@ -44,8 +44,8 @@ export async function startTaskContainer(options: ContainerOptions): Promise<str
       AutoRemove: false, // Keep container for logs
     },
     Labels: {
-      'jules.task.id': task.id,
-      'jules.repo': task.repo,
+      'squire.task.id': task.id,
+      'squire.repo': task.repo,
     },
   });
   
@@ -132,13 +132,13 @@ export async function removeContainer(containerId: string): Promise<void> {
 }
 
 /**
- * List all jules containers.
+ * List all squire containers.
  */
 export async function listJulesContainers(): Promise<Docker.ContainerInfo[]> {
   const containers = await docker.listContainers({
     all: true,
     filters: {
-      label: ['jules.task.id'],
+      label: ['squire.task.id'],
     },
   });
   return containers;

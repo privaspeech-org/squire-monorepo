@@ -13,7 +13,7 @@ export const startCommand = new Command('start')
     
     if (!config.githubToken) {
       console.error(chalk.red('Error: GITHUB_TOKEN not set'));
-      console.error('Set it via environment variable or in ~/.jules/config.json');
+      console.error('Set it via environment variable or in ~/.squire/config.json');
       process.exit(1);
     }
     
@@ -27,7 +27,7 @@ export const startCommand = new Command('start')
     if (task.status !== 'pending') {
       console.error(chalk.yellow(`Task ${id} is ${task.status}, not pending`));
       if (task.status === 'running') {
-        console.error('Use `jules logs` to view progress');
+        console.error('Use `squire logs` to view progress');
       }
       process.exit(1);
     }
@@ -44,9 +44,9 @@ export const startCommand = new Command('start')
       
       console.log(chalk.green('✓') + ` Task running in container ${chalk.dim(containerId.slice(0, 12))}`);
       console.log(chalk.dim('\nCheck status with:'));
-      console.log(`  jules status ${task.id}`);
+      console.log(`  squire status ${task.id}`);
       console.log(chalk.dim('View logs with:'));
-      console.log(`  jules logs ${task.id}`);
+      console.log(`  squire logs ${task.id}`);
     } catch (error) {
       console.error(chalk.red('\nFailed to start container:'));
       console.error(error instanceof Error ? error.message : error);

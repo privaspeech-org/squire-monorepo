@@ -1,4 +1,4 @@
-# Jules Worker Container
+# Squire Worker Container
 # Runs OpenCode to execute coding tasks
 
 FROM node:22-bookworm

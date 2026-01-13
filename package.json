@@ -1,10 +1,10 @@
 {
-  "name": "jules-clone",
+  "name": "squire",
   "version": "0.1.0",
-  "description": "Async coding agent - fire and forget, come back to a PR",
+  "description": "Async coding agent - fire and forget, come back to a PR. Your trusty squire for background coding tasks.",
   "type": "module",
   "bin": {
-    "jules": "./dist/index.js"
+    "squire": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc",

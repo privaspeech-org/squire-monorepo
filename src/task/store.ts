@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { nanoid } from 'nanoid';
 import type { Task, TaskCreateOptions, TaskStatus } from './types.js';
 
-const TASKS_DIR = process.env.JULES_TASKS_DIR || join(process.cwd(), 'tasks');
+const TASKS_DIR = process.env.SQUIRE_TASKS_DIR || join(process.cwd(), 'tasks');
 
 function ensureTasksDir(): void {
   if (!existsSync(TASKS_DIR)) {
@@ -23,7 +23,7 @@ export function createTask(options: TaskCreateOptions): Task {
     id,
     repo: options.repo,
     prompt: options.prompt,
-    branch: options.branch || `jules/${id}`,
+    branch: options.branch || `squire/${id}`,
     baseBranch: options.baseBranch || 'auto',  // Auto-detect default branch
     status: 'pending',
     createdAt: new Date().toISOString(),

@@ -18,8 +18,8 @@ import { webhookCommand } from './commands/webhook.js';
 const program = new Command();
 
 program
-  .name('jules')
-  .description('Async coding agent - fire and forget, come back to a PR')
+  .name('squire')
+  .description('Your trusty squire for background coding tasks - fire and forget, come back to a PR')
   .version('0.1.0');
 
 // Core commands

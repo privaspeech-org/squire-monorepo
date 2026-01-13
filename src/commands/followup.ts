@@ -46,7 +46,7 @@ export const followupCommand = new Command('followup')
     
     if (options.start === false) {
       console.log(chalk.yellow('\nTask created but not started. Run:'));
-      console.log(`  jules start ${followupTask.id}`);
+      console.log(`  squire start ${followupTask.id}`);
       return;
     }
     
@@ -62,7 +62,7 @@ export const followupCommand = new Command('followup')
       
       console.log(chalk.green('✓') + ` Follow-up running in container ${chalk.dim(containerId.slice(0, 12))}`);
       console.log(chalk.dim('\nCheck status with:'));
-      console.log(`  jules status ${followupTask.id}`);
+      console.log(`  squire status ${followupTask.id}`);
     } catch (error) {
       console.error(chalk.red('\nFailed to start container:'));
       console.error(error instanceof Error ? error.message : error);

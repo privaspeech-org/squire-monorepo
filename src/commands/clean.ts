@@ -54,7 +54,7 @@ export const cleanCommand = new Command('clean')
         const stoppedContainers = containers.filter(c => c.State !== 'running');
         if (stoppedContainers.length > 0) {
           console.log(chalk.dim(`\nTip: ${stoppedContainers.length} stopped container(s) remain.`));
-          console.log(chalk.dim('Run `jules clean --containers` to remove them.'));
+          console.log(chalk.dim('Run `squire clean --containers` to remove them.'));
         }
       } catch {
         // Docker might not be available

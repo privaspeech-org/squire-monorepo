@@ -11,9 +11,9 @@ export interface JulesConfig {
 }
 
 const CONFIG_PATHS = [
-  join(process.cwd(), 'jules.config.json'),
-  join(homedir(), '.jules', 'config.json'),
-  join(homedir(), '.config', 'jules', 'config.json'),
+  join(process.cwd(), 'squire.config.json'),
+  join(homedir(), '.squire', 'config.json'),
+  join(homedir(), '.config', 'squire', 'config.json'),
 ];
 
 let cachedConfig: JulesConfig | null = null;
@@ -26,10 +26,10 @@ export function getConfig(): JulesConfig {
   // Start with environment variables
   const config: JulesConfig = {
     githubToken: process.env.GITHUB_TOKEN || process.env.GH_TOKEN,
-    model: process.env.JULES_MODEL || 'opencode/glm-4.7-free',
-    tasksDir: process.env.JULES_TASKS_DIR,
-    workerImage: process.env.JULES_WORKER_IMAGE || 'jules-worker:latest',
-    maxConcurrent: process.env.JULES_MAX_CONCURRENT ? parseInt(process.env.JULES_MAX_CONCURRENT, 10) : 5,
+    model: process.env.SQUIRE_MODEL || 'opencode/glm-4.7-free',
+    tasksDir: process.env.SQUIRE_TASKS_DIR,
+    workerImage: process.env.SQUIRE_WORKER_IMAGE || 'squire-worker:latest',
+    maxConcurrent: process.env.SQUIRE_MAX_CONCURRENT ? parseInt(process.env.SQUIRE_MAX_CONCURRENT, 10) : 5,
   };
   
   // Try to load config file

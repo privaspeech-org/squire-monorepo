@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { getConfig } from '../config.js';
 
-const CONFIG_PATH = join(homedir(), '.jules', 'config.json');
+const CONFIG_PATH = join(homedir(), '.squire', 'config.json');
 
 export const configCommand = new Command('config')
   .description('View or set configuration')
@@ -26,7 +26,7 @@ export const configCommand = new Command('config')
       console.log(`  ${chalk.dim('githubToken:')} ${config.githubToken ? chalk.green('set') : chalk.red('not set')}`);
       console.log(`  ${chalk.dim('model:')}       ${config.model || 'opencode/glm-4.7-free'}`);
       console.log(`  ${chalk.dim('tasksDir:')}    ${config.tasksDir || './tasks'}`);
-      console.log(`  ${chalk.dim('workerImage:')} ${config.workerImage || 'jules-worker:latest'}`);
+      console.log(`  ${chalk.dim('workerImage:')} ${config.workerImage || 'squire-worker:latest'}`);
       console.log();
       console.log(chalk.dim(`Config file: ${CONFIG_PATH}`));
       return;
@@ -65,7 +65,7 @@ export const configCommand = new Command('config')
     fileConfig[key] = value;
     
     // Ensure directory exists
-    const configDir = join(homedir(), '.jules');
+    const configDir = join(homedir(), '.squire');
     if (!existsSync(configDir)) {
       mkdirSync(configDir, { recursive: true });
     }

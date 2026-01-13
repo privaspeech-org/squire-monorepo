@@ -9,7 +9,7 @@ export const newCommand = new Command('new')
   .description('Create and start a new coding task')
   .argument('<repo>', 'Repository (owner/repo or full URL)')
   .argument('<prompt>', 'What to do')
-  .option('-b, --branch <branch>', 'Branch name (default: jules/<id>)')
+  .option('-b, --branch <branch>', 'Branch name (default: squire/<id>)')
   .option('--base <base>', 'Base branch (default: main)')
   .option('-m, --model <model>', 'Model to use (default: opencode/glm-4.7-free)')
   .option('--no-start', 'Create task but don\'t start it')
@@ -18,7 +18,7 @@ export const newCommand = new Command('new')
     
     if (!config.githubToken) {
       console.error(chalk.red('Error: GITHUB_TOKEN not set'));
-      console.error('Set it via environment variable or in ~/.jules/config.json');
+      console.error('Set it via environment variable or in ~/.squire/config.json');
       process.exit(1);
     }
     
@@ -37,7 +37,7 @@ export const newCommand = new Command('new')
     
     if (options.start === false) {
       console.log(chalk.yellow('\nTask created but not started. Run:'));
-      console.log(`  jules start ${task.id}`);
+      console.log(`  squire start ${task.id}`);
       return;
     }
     
@@ -46,7 +46,7 @@ export const newCommand = new Command('new')
     if (!allowed) {
       console.log(chalk.yellow(`\n⚠ Task limit reached (${running}/${max} running)`));
       console.log(chalk.dim('Task created but queued. Start manually when a slot opens:'));
-      console.log(`  jules start ${task.id}`);
+      console.log(`  squire start ${task.id}`);
       return;
     }
     
@@ -63,14 +63,14 @@ export const newCommand = new Command('new')
       
       console.log(chalk.green('✓') + ` Task running in container ${chalk.dim(containerId.slice(0, 12))}`);
       console.log(chalk.dim('\nCheck status with:'));
-      console.log(`  jules status ${task.id}`);
+      console.log(`  squire status ${task.id}`);
       console.log(chalk.dim('View logs with:'));
-      console.log(`  jules logs ${task.id}`);
+      console.log(`  squire logs ${task.id}`);
     } catch (error) {
       console.error(chalk.red('\nFailed to start container:'));
       console.error(error instanceof Error ? error.message : error);
-      console.error(chalk.dim('\nMake sure Docker is running and the jules-worker image is built:'));
-      console.error(chalk.dim('  docker build -t jules-worker .'));
+      console.error(chalk.dim('\nMake sure Docker is running and the squire-worker image is built:'));
+      console.error(chalk.dim('  docker build -t squire-worker .'));
       process.exit(1);
     }
   });

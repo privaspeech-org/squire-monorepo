@@ -26,7 +26,7 @@ export const retryCommand = new Command('retry')
     
     if (failedTask.status !== 'failed') {
       console.error(chalk.yellow(`Task ${id} is ${failedTask.status}, not failed`));
-      console.error('Use `jules followup` for completed tasks');
+      console.error('Use `squire followup` for completed tasks');
       process.exit(1);
     }
     
@@ -55,7 +55,7 @@ export const retryCommand = new Command('retry')
       
       console.log(chalk.green('✓') + ` Retry running in container ${chalk.dim(containerId.slice(0, 12))}`);
       console.log(chalk.dim('\nCheck status with:'));
-      console.log(`  jules status ${retryTask.id}`);
+      console.log(`  squire status ${retryTask.id}`);
     } catch (error) {
       console.error(chalk.red('\nFailed to start container:'));
       console.error(error instanceof Error ? error.message : error);

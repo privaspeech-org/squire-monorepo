@@ -8,14 +8,14 @@ import { getConfig } from '../config.js';
 export const webhookCommand = new Command('webhook')
   .description('Start webhook server to receive GitHub events')
   .option('-p, --port <port>', 'Port to listen on', '3000')
-  .option('-s, --secret <secret>', 'Webhook secret (or JULES_WEBHOOK_SECRET env)')
+  .option('-s, --secret <secret>', 'Webhook secret (or SQUIRE_WEBHOOK_SECRET env)')
   .option('--auto-fix-ci', 'Auto-create follow-up tasks when CI fails')
   .option('--auto-fix-reviews', 'Auto-create follow-up tasks from bot review comments (e.g., Greptile)')
   .option('--review-bots <bots>', 'Comma-separated bot usernames to respond to', 'greptile[bot],greptile-apps[bot]')
   .action(async (options) => {
     const config = getConfig();
     const port = parseInt(options.port, 10);
-    const secret = options.secret || process.env.JULES_WEBHOOK_SECRET;
+    const secret = options.secret || process.env.SQUIRE_WEBHOOK_SECRET;
     const autoFixCi = options.autoFixCi;
     const autoFixReviews = options.autoFixReviews;
     const reviewBots = options.reviewBots?.split(',').map((b: string) => b.trim()) || ['greptile[bot]'];
@@ -24,12 +24,12 @@ export const webhookCommand = new Command('webhook')
     
     if (!secret) {
       console.log(chalk.yellow('⚠ No webhook secret configured'));
-      console.log(chalk.dim('  Set via --secret or JULES_WEBHOOK_SECRET\n'));
+      console.log(chalk.dim('  Set via --secret or SQUIRE_WEBHOOK_SECRET\n'));
     }
     
     if ((autoFixCi || autoFixReviews) && !config.githubToken) {
       console.log(chalk.yellow('⚠ Auto-fix features require GITHUB_TOKEN'));
-      console.log(chalk.dim('  Set via environment or jules config\n'));
+      console.log(chalk.dim('  Set via environment or squire config\n'));
     }
     
     if (autoFixCi) {

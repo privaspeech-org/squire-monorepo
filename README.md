@@ -1,32 +1,32 @@
 ---
-name: jules-clone
-description: Async coding agent - fire and forget, come back to a PR. Like Google's Jules but local.
+name: squire
+description: Your trusty squire for background coding tasks - fire and forget, come back to a PR.
 ---
 
-# Jules Clone
+# Squire 🛡️
 
-Async coding agent that works autonomously in Docker containers using OpenCode.
+Async coding agent that works autonomously in Docker containers using OpenCode. Fire and forget, come back to a PR.
 
 ## Location
 
-- **Repo:** https://github.com/carlulsoe/jules-clone
-- **Local:** `/root/repos/jules-clone`
-- **CLI:** `jules` (after npm link or running via node)
+- **Repo:** https://github.com/carlulsoe/squire
+- **Local:** `/root/repos/squire`
+- **CLI:** `squire` (after npm link)
 
 ## Quick Start
 
 ```bash
-cd /root/repos/jules-clone
+cd /root/repos/squire
 export GITHUB_TOKEN=$(gh auth token)
 
 # Create a task
-jules new owner/repo "Add feature X"
+squire new owner/repo "Add feature X"
 
 # Check status
-jules status <task-id>
+squire status <task-id>
 
 # View logs
-jules logs <task-id>
+squire logs <task-id>
 ```
 
 ## Commands
@@ -35,60 +35,60 @@ jules logs <task-id>
 
 | Command | Description |
 |---------|-------------|
-| `jules new <repo> "<prompt>"` | Create and start a coding task |
-| `jules list` | List all tasks |
-| `jules status <id>` | Get task details |
-| `jules logs <id>` | View container logs |
+| `squire new <repo> "<prompt>"` | Create and start a coding task |
+| `squire list` | List all tasks |
+| `squire status <id>` | Get task details |
+| `squire logs <id>` | View container logs |
 
 ### Task Management
 
 | Command | Description |
 |---------|-------------|
-| `jules start <id>` | Start a pending task |
-| `jules stop <id>` | Stop a running task |
-| `jules retry <id>` | Retry a failed task |
-| `jules followup <id> "<prompt>"` | Continue work on same branch |
+| `squire start <id>` | Start a pending task |
+| `squire stop <id>` | Stop a running task |
+| `squire retry <id>` | Retry a failed task |
+| `squire followup <id> "<prompt>"` | Continue work on same branch |
 
 ### Monitoring
 
 | Command | Description |
 |---------|-------------|
-| `jules ps` | Show running tasks |
-| `jules watch` | Watch + auto-start queued tasks |
-| `jules webhook` | Start webhook server for GitHub events |
+| `squire ps` | Show running tasks |
+| `squire watch` | Watch + auto-start queued tasks |
+| `squire webhook` | Start webhook server for GitHub events |
 
 ### Maintenance
 
 | Command | Description |
 |---------|-------------|
-| `jules clean` | Remove completed/failed tasks |
-| `jules config` | View/set configuration |
+| `squire clean` | Remove completed/failed tasks |
+| `squire config` | View/set configuration |
 
 ## Workflow Examples
 
 ### Simple task
 ```bash
-jules new privaspeech-org/privaspeech "Add a health check endpoint to the API"
+squire new privaspeech-org/privaspeech "Add a health check endpoint to the API"
 # Wait for completion...
-jules status <id>
+squire status <id>
 # PR created automatically!
 ```
 
 ### Follow-up on completed task
 ```bash
-jules followup <id> "Also add tests for the health check"
+squire followup <id> "Also add tests for the health check"
 # Continues on same branch, comments on existing PR
 ```
 
 ### Retry with better model
 ```bash
-jules retry <id> --model anthropic/claude-sonnet-4
+squire retry <id> --model anthropic/claude-sonnet-4
 ```
 
 ### CI failure auto-fix
 ```bash
 # Start webhook server with auto-fix enabled
-jules webhook --auto-fix-ci
+squire webhook --auto-fix-ci
 
 # When CI fails, automatically creates follow-up task to fix it
 ```
@@ -96,28 +96,28 @@ jules webhook --auto-fix-ci
 ### Greptile/bot review auto-fix
 ```bash
 # Start webhook server with review auto-fix
-jules webhook --auto-fix-reviews
+squire webhook --auto-fix-reviews
 
 # When Greptile (or other bots) post review comments, 
 # automatically creates follow-up task to address them
 
 # Custom bot list (comma-separated)
-jules webhook --auto-fix-reviews --review-bots "greptile[bot],coderabbit[bot]"
+squire webhook --auto-fix-reviews --review-bots "greptile[bot],coderabbit[bot]"
 
 # Combine with CI auto-fix for full automation
-jules webhook --auto-fix-ci --auto-fix-reviews
+squire webhook --auto-fix-ci --auto-fix-reviews
 ```
 
 ### Parallel tasks with limits
 ```bash
-jules config maxConcurrent 3  # Limit to 3 parallel tasks
-jules new repo1 "Task 1"
-jules new repo2 "Task 2"
-jules new repo3 "Task 3"
-jules new repo4 "Task 4"  # Queued, waiting for slot
+squire config maxConcurrent 3  # Limit to 3 parallel tasks
+squire new repo1 "Task 1"
+squire new repo2 "Task 2"
+squire new repo3 "Task 3"
+squire new repo4 "Task 4"  # Queued, waiting for slot
 
 # Watch will auto-start queued tasks
-jules watch
+squire watch
 ```
 
 ## Configuration
@@ -126,18 +126,18 @@ Set GitHub token:
 ```bash
 export GITHUB_TOKEN=$(gh auth token)
 # Or persist:
-jules config githubToken $(gh auth token)
+squire config githubToken $(gh auth token)
 ```
 
 Set model:
 ```bash
-jules config model opencode/glm-4.7-free  # Free (default)
-jules config model anthropic/claude-sonnet-4  # Better but paid
+squire config model opencode/glm-4.7-free  # Free (default)
+squire config model anthropic/claude-sonnet-4  # Better but paid
 ```
 
 Set parallel limit:
 ```bash
-jules config maxConcurrent 5
+squire config maxConcurrent 5
 ```
 
 ## Models
@@ -152,14 +152,14 @@ jules config maxConcurrent 5
 
 If you need to rebuild the Docker image:
 ```bash
-cd /root/repos/jules-clone
-docker build -t jules-worker .
+cd /root/repos/squire
+docker build -t squire-worker .
 ```
 
 ## Architecture
 
 ```
-jules new → Task JSON → Docker Container → OpenCode → GitHub PR
+squire new → Task JSON → Docker Container → OpenCode → GitHub PR
                               ↓
                         Webhook Server ← GitHub Events (merged/closed/CI)
                               ↓
@@ -173,7 +173,7 @@ The webhook server needs to be reachable from GitHub. Since our server is behind
 ### How it works
 
 ```
-GitHub → Cloudflare Edge → cloudflared tunnel → localhost:3456 → jules webhook
+GitHub → Cloudflare Edge → cloudflared tunnel → localhost:3456 → squire webhook
 ```
 
 1. `cloudflared` creates a secure tunnel from Cloudflare's edge to your local port
@@ -200,13 +200,13 @@ cloudflared tunnel --url http://localhost:3456
 
 ```bash
 # 1. Generate webhook secret
-export JULES_WEBHOOK_SECRET=$(openssl rand -hex 20)
-echo "Secret: $JULES_WEBHOOK_SECRET"
+export SQUIRE_WEBHOOK_SECRET=$(openssl rand -hex 20)
+echo "Secret: $SQUIRE_WEBHOOK_SECRET"
 
 # 2. Start webhook server
-cd /root/repos/jules-clone
+cd /root/repos/squire
 export GITHUB_TOKEN=$(gh auth token)
-nohup node dist/index.js webhook --port 3456 --auto-fix-ci --auto-fix-reviews > /tmp/jules-webhook.log 2>&1 &
+nohup node dist/index.js webhook --port 3456 --auto-fix-ci --auto-fix-reviews > /tmp/squire-webhook.log 2>&1 &
 
 # 3. Start cloudflared tunnel
 cloudflared tunnel --url http://localhost:3456 > /tmp/cloudflared.log 2>&1 &
@@ -221,7 +221,7 @@ gh api repos/OWNER/REPO/hooks --method POST --input - <<EOF
   "config": {
     "url": "${TUNNEL_URL}/webhook",
     "content_type": "json",
-    "secret": "$JULES_WEBHOOK_SECRET"
+    "secret": "$SQUIRE_WEBHOOK_SECRET"
   },
   "events": ["pull_request", "issue_comment", "check_run", "pull_request_review", "pull_request_review_comment"],
   "active": true
@@ -238,22 +238,22 @@ For a stable URL that survives restarts, create a named tunnel with a Cloudflare
 cloudflared tunnel login
 
 # Create named tunnel
-cloudflared tunnel create jules-webhook
+cloudflared tunnel create squire-webhook
 
 # Route to a subdomain (requires DNS setup in Cloudflare dashboard)
-cloudflared tunnel route dns jules-webhook jules-webhook.yourdomain.com
+cloudflared tunnel route dns squire-webhook squire-webhook.yourdomain.com
 
 # Run with config
 cat > ~/.cloudflared/config.yml <<EOF
-tunnel: jules-webhook
+tunnel: squire-webhook
 credentials-file: ~/.cloudflared/<tunnel-id>.json
 ingress:
-  - hostname: jules-webhook.yourdomain.com
+  - hostname: squire-webhook.yourdomain.com
     service: http://localhost:3456
   - service: http_status:404
 EOF
 
-cloudflared tunnel run jules-webhook
+cloudflared tunnel run squire-webhook
 ```
 
 ### Current setup (PrivaSpeech)
@@ -276,15 +276,19 @@ gh api repos/OWNER/REPO/hooks/HOOK_ID/deliveries/DELIVERY_ID/attempts --method P
 ### Note on Greptile
 
 Greptile does **not** automatically re-review after pushes. The auto-fix loop works for:
-- Initial Greptile review → jules fixes
-- CI failures → jules fixes
+- Initial Greptile review → squire fixes
+- CI failures → squire fixes
 
 But won't create an infinite loop since Greptile only reviews once per PR (unless manually requested).
+
+## Why "Squire"?
+
+A squire is an apprentice to a knight - they do the groundwork, handle the prep work, and learn as they go. Perfect for an AI coding assistant using cheaper models to handle routine tasks while you focus on the important stuff. 🛡️
 
 ## Notes
 
 - Tasks run in isolated Docker containers
-- Each task gets its own branch (`jules/<task-id>`)
+- Each task gets its own branch (`squire/<task-id>`)
 - Follow-ups continue on the same branch
 - Webhook server tracks PR lifecycle (merged, closed, CI status)
 - Auto-fix CI creates follow-up tasks when checks fail

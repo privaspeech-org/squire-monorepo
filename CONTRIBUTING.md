@@ -13,8 +13,8 @@ Thank you for your interest in contributing! This document provides guidelines f
 1. **Fork and clone the repository**
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/jules-clone.git
-cd jules-clone
+git clone https://github.com/YOUR_USERNAME/squire-clone.git
+cd squire-clone
 ```
 
 2. **Install dependencies**
@@ -32,7 +32,7 @@ npm run build
 4. **Build the Docker worker image**
 
 ```bash
-docker build -t jules-worker .
+docker build -t squire-worker .
 ```
 
 5. **Link for local development**
@@ -41,7 +41,7 @@ docker build -t jules-worker .
 npm link
 ```
 
-Now you can run `jules` commands directly from your local clone.
+Now you can run `squire` commands directly from your local clone.
 
 ## Development
 
@@ -57,7 +57,7 @@ npm run dev      # Watch mode (rebuilds on changes)
 After linking with `npm link`, you can run:
 
 ```bash
-jules --help
+squire --help
 ```
 
 Or run directly:
@@ -75,14 +75,14 @@ Currently, this project uses manual testing. To test changes:
 
 ```bash
 export GITHUB_TOKEN=ghp_your_test_token
-jules new YOUR_USERNAME/test-repo "Add a simple test" --base main
+squire new YOUR_USERNAME/test-repo "Add a simple test" --base main
 ```
 
 2. Monitor the task:
 
 ```bash
-jules status <task-id>
-jules logs <task-id>
+squire status <task-id>
+squire logs <task-id>
 ```
 
 3. Verify the PR created matches expectations.
@@ -90,7 +90,7 @@ jules logs <task-id>
 ## Project Structure
 
 ```
-jules-clone/
+squire-clone/
 ├── src/
 │   ├── commands/      # CLI command implementations
 │   ├── config.ts      # Configuration management
@@ -163,7 +163,7 @@ git checkout -b feature/your-feature-name
 
 ```bash
 npm run build
-# Manual testing with jules new/status/logs commands
+# Manual testing with squire new/status/logs commands
 ```
 
 4. **Commit your changes**
