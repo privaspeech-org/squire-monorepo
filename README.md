@@ -35,7 +35,9 @@ jules logs <task-id>
 
 ## Commands
 
-### `jules new <repo> "<prompt>"`
+### Core Commands
+
+#### `jules new <repo> "<prompt>"`
 
 Create and start a new coding task.
 
@@ -52,7 +54,7 @@ Options:
 - `-m, --model <model>` — Model to use (default: `opencode/glm-4.7-free`)
 - `--no-start` — Create task without starting it
 
-### `jules list`
+#### `jules list`
 
 List all tasks.
 
@@ -62,11 +64,11 @@ jules list --status running
 jules list -n 20
 ```
 
-### `jules status <id>`
+#### `jules status <id>`
 
 Get detailed status of a task.
 
-### `jules logs <id>`
+#### `jules logs <id>`
 
 View container logs for a task.
 
@@ -75,28 +77,29 @@ jules logs abc123
 jules logs abc123 --tail 200
 ```
 
-### `jules start <id>`
+### Task Management
 
-Start a pending task (created with `--no-start`).
+#### `jules start <id>`
 
-### `jules stop <id>`
+Start a pending task (created with `--no-start` or queued due to limits).
+
+#### `jules stop <id>`
 
 Stop a running task.
 
-### `jules clean`
+#### `jules retry <id>`
 
-Clean up completed/failed tasks.
+Retry a failed task.
 
 ```bash
-jules clean              # Remove completed/failed tasks
-jules clean --all        # Remove all tasks
-jules clean --containers # Also remove stopped containers
-jules clean --dry-run    # Preview what would be removed
+jules retry abc123
+jules retry abc123 --model anthropic/claude-sonnet-4  # Try with better model
+jules retry abc123 --new-branch  # Start fresh on new branch
 ```
 
-### `jules followup <id> "<prompt>"` (alias: `fu`)
+#### `jules followup <id> "<prompt>"` (alias: `fu`)
 
-Send follow-up instructions to a completed or running task.
+Send follow-up instructions to a completed task.
 
 ```bash
 jules followup abc123 "Also add tests for the new feature"
@@ -108,7 +111,9 @@ The follow-up:
 - If a PR exists, adds a comment instead of creating a new PR
 - Creates a new task linked to the parent
 
-### `jules ps`
+### Monitoring
+
+#### `jules ps`
 
 Show running tasks (like `docker ps`).
 
@@ -117,7 +122,48 @@ jules ps        # Show running/pending tasks
 jules ps -a     # Show all tasks
 ```
 
-### `jules config`
+#### `jules watch`
+
+Watch tasks and auto-start queued ones.
+
+```bash
+jules watch                    # Watch with default 10s interval
+jules watch -i 5               # Poll every 5 seconds
+jules watch --no-auto-start    # Don't auto-start pending tasks
+jules watch --once             # Check once and exit
+```
+
+#### `jules webhook`
+
+Start a webhook server to receive GitHub events (PR merged/closed/commented).
+
+```bash
+jules webhook                           # Start on port 3000
+jules webhook -p 8080                   # Custom port
+jules webhook -s "your-webhook-secret"  # With signature verification
+```
+
+Then configure your GitHub repo:
+1. Settings → Webhooks → Add webhook
+2. Payload URL: `http://your-host:3000/webhook`
+3. Content type: `application/json`
+4. Secret: (same as --secret flag)
+5. Events: Pull requests, Issue comments
+
+### Maintenance
+
+#### `jules clean`
+
+Clean up completed/failed tasks.
+
+```bash
+jules clean              # Remove completed/failed tasks
+jules clean --all        # Remove all tasks
+jules clean --containers # Also remove stopped containers
+jules clean --dry-run    # Preview what would be removed
+```
+
+#### `jules config`
 
 View or set configuration.
 
@@ -126,6 +172,7 @@ jules config                    # Show all config
 jules config --list             # Same as above
 jules config githubToken        # Get a value
 jules config model gpt-4        # Set a value
+jules config maxConcurrent 3    # Limit parallel tasks
 jules config --path             # Show config file location
 ```
 
@@ -142,7 +189,8 @@ Example config:
 {
   "githubToken": "ghp_xxxxx",
   "model": "opencode/glm-4.7-free",
-  "workerImage": "jules-worker:latest"
+  "workerImage": "jules-worker:latest",
+  "maxConcurrent": 5
 }
 ```
 
@@ -152,16 +200,23 @@ Environment variables:
 - `JULES_MODEL` — Default model
 - `JULES_TASKS_DIR` — Where to store task files
 - `JULES_WORKER_IMAGE` — Docker image for workers
+- `JULES_MAX_CONCURRENT` — Max parallel tasks (default: 5)
+- `JULES_WEBHOOK_SECRET` — Secret for webhook signature verification
 
-## How it Works
+## Parallel Task Limits
 
-1. **Task Created** — JSON file stored in `tasks/`
-2. **Container Started** — Docker container spins up with OpenCode
-3. **Work Happens** — Container clones repo, runs OpenCode, commits changes
-4. **PR Created** — GitHub PR opened automatically
-5. **Done** — Task marked complete, container exits
+By default, Jules allows 5 concurrent tasks. When the limit is reached:
+- New tasks are created but not started automatically
+- Use `jules watch` to auto-start when slots open
+- Or manually start with `jules start <id>`
 
-Each task runs in isolation. You can have multiple tasks running in parallel.
+```bash
+# Set a lower limit
+jules config maxConcurrent 3
+
+# Watch will auto-start queued tasks as slots open
+jules watch
+```
 
 ## Models
 
@@ -177,10 +232,13 @@ Default is `opencode/glm-4.7-free` (free tier). Other options:
 ## Task Lifecycle
 
 ```
-PENDING ──────► RUNNING ──────► COMPLETED
-                   │                 
-                   ▼                 
-                FAILED ◄───── (on error)
+PENDING ──────► RUNNING ──────► COMPLETED ──────► (PR Merged)
+    │              │                 │
+    │              ▼                 ▼
+    │           FAILED          (PR Closed)
+    │              │
+    │              ▼
+    └───────► (retry) ────► RUNNING
 ```
 
 ## Development
@@ -190,17 +248,6 @@ npm run dev    # Watch mode
 npm run build  # Build once
 ```
 
-### Testing
-
-```bash
-# Run a test task
-jules new carlulsoe/jules-clone "Add a test file" --base master
-
-# Check progress
-jules status <id>
-jules logs <id>
-```
-
 ## Architecture
 
 ```
@@ -208,17 +255,18 @@ jules logs <id>
 │      CLI        │────►│  Task Store  │────►│   Docker    │
 │  jules new/...  │     │  (JSON files)│     │  Container  │
 └─────────────────┘     └──────────────┘     └─────────────┘
-                                                    │
-                                                    ▼
-                                             ┌─────────────┐
-                                             │  OpenCode   │
-                                             │  + gh CLI   │
-                                             └─────────────┘
-                                                    │
-                                                    ▼
-                                             ┌─────────────┐
-                                             │  GitHub PR  │
-                                             └─────────────┘
+                               │                    │
+                               ▼                    ▼
+                        ┌──────────────┐     ┌─────────────┐
+                        │   Webhook    │◄────│  OpenCode   │
+                        │   Server     │     │  + gh CLI   │
+                        └──────────────┘     └─────────────┘
+                               │                    │
+                               ▼                    ▼
+                        ┌──────────────┐     ┌─────────────┐
+                        │   GitHub     │◄────│  GitHub PR  │
+                        │   Events     │     └─────────────┘
+                        └──────────────┘
 ```
 
 ## License

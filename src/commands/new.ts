@@ -3,6 +3,7 @@ import chalk from 'chalk';
 import { createTask } from '../task/store.js';
 import { startTaskContainer } from '../worker/container.js';
 import { getConfig } from '../config.js';
+import { canStartNewTask } from '../task/limits.js';
 
 export const newCommand = new Command('new')
   .description('Create and start a new coding task')
@@ -40,8 +41,17 @@ export const newCommand = new Command('new')
       return;
     }
     
+    // Check parallel task limits
+    const { allowed, running, max } = await canStartNewTask();
+    if (!allowed) {
+      console.log(chalk.yellow(`\n⚠ Task limit reached (${running}/${max} running)`));
+      console.log(chalk.dim('Task created but queued. Start manually when a slot opens:'));
+      console.log(`  jules start ${task.id}`);
+      return;
+    }
+    
     // Start the container
-    console.log(chalk.dim('\nStarting worker container...'));
+    console.log(chalk.dim(`\nStarting worker container (${running + 1}/${max} slots)...`));
     
     try {
       const containerId = await startTaskContainer({

@@ -11,6 +11,9 @@ import { cleanCommand } from './commands/clean.js';
 import { configCommand } from './commands/config.js';
 import { followupCommand } from './commands/followup.js';
 import { psCommand } from './commands/ps.js';
+import { retryCommand } from './commands/retry.js';
+import { watchCommand } from './commands/watch.js';
+import { webhookCommand } from './commands/webhook.js';
 
 const program = new Command();
 
@@ -19,15 +22,25 @@ program
   .description('Async coding agent - fire and forget, come back to a PR')
   .version('0.1.0');
 
+// Core commands
 program.addCommand(newCommand);
 program.addCommand(listCommand);
 program.addCommand(statusCommand);
 program.addCommand(logsCommand);
+
+// Task management
 program.addCommand(startCommand);
 program.addCommand(stopCommand);
+program.addCommand(retryCommand);
+program.addCommand(followupCommand);
+
+// Monitoring
+program.addCommand(psCommand);
+program.addCommand(watchCommand);
+program.addCommand(webhookCommand);
+
+// Maintenance
 program.addCommand(cleanCommand);
 program.addCommand(configCommand);
-program.addCommand(followupCommand);
-program.addCommand(psCommand);
 
 program.parse();

@@ -7,6 +7,7 @@ export interface JulesConfig {
   model?: string;
   tasksDir?: string;
   workerImage?: string;
+  maxConcurrent?: number;  // Max parallel tasks (default: 5)
 }
 
 const CONFIG_PATHS = [
@@ -28,6 +29,7 @@ export function getConfig(): JulesConfig {
     model: process.env.JULES_MODEL || 'opencode/glm-4.7-free',
     tasksDir: process.env.JULES_TASKS_DIR,
     workerImage: process.env.JULES_WORKER_IMAGE || 'jules-worker:latest',
+    maxConcurrent: process.env.JULES_MAX_CONCURRENT ? parseInt(process.env.JULES_MAX_CONCURRENT, 10) : 5,
   };
   
   // Try to load config file
@@ -40,6 +42,7 @@ export function getConfig(): JulesConfig {
         if (fileConfig.model) config.model = fileConfig.model;
         if (fileConfig.tasksDir) config.tasksDir = fileConfig.tasksDir;
         if (fileConfig.workerImage) config.workerImage = fileConfig.workerImage;
+        if (fileConfig.maxConcurrent) config.maxConcurrent = fileConfig.maxConcurrent;
         break;
       } catch {
         // Ignore invalid config files

@@ -12,6 +12,10 @@ export interface Task {
   
   prUrl?: string;            // PR URL when created
   prNumber?: number;         // PR number
+  prMerged?: boolean;        // PR was merged
+  prMergedAt?: string;       // When PR was merged
+  prClosed?: boolean;        // PR was closed (without merging)
+  prClosedAt?: string;       // When PR was closed
   
   error?: string;            // Error message if failed
   
