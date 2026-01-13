@@ -54,16 +54,16 @@ if [ -z "${BASE_BRANCH}" ] || [ "${BASE_BRANCH}" = "auto" ]; then
     echo "=== Auto-detected default branch: ${BASE_BRANCH} ==="
 fi
 
-# Fetch all branches
-git fetch origin
-
-# Check if branch already exists (for follow-ups)
-if git show-ref --verify --quiet "refs/remotes/origin/${BRANCH}"; then
+# Check if branch already exists remotely (for follow-ups)
+# Use ls-remote which queries the remote directly
+if git ls-remote --heads origin "${BRANCH}" | grep -q "${BRANCH}"; then
     echo "=== Branch ${BRANCH} exists - this is a follow-up ==="
-    git checkout -b "${BRANCH}" "origin/${BRANCH}"
+    git fetch origin "${BRANCH}:${BRANCH}"
+    git checkout "${BRANCH}"
     IS_FOLLOWUP=true
 else
     echo "=== Creating new branch ${BRANCH} from ${BASE_BRANCH} ==="
+    git fetch origin "${BASE_BRANCH}"
     git checkout -b "${BRANCH}" "origin/${BASE_BRANCH}"
     IS_FOLLOWUP=false
 fi
