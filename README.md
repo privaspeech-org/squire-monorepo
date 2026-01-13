@@ -1,30 +1,26 @@
+---
+name: jules-clone
+description: Async coding agent - fire and forget, come back to a PR. Like Google's Jules but local.
+---
+
 # Jules Clone
 
-Async coding agent — fire and forget, come back to a PR.
+Async coding agent that works autonomously in Docker containers using OpenCode.
 
-## What is this?
+## Location
 
-Jules Clone is a local implementation inspired by Google's Jules: you give it a task and a repo, it works autonomously in a Docker container using OpenCode, and creates a PR when done. No babysitting required.
+- **Repo:** https://github.com/carlulsoe/jules-clone
+- **Local:** `/root/repos/jules-clone`
+- **CLI:** `jules` (after npm link or running via node)
 
 ## Quick Start
 
 ```bash
-# Install dependencies
-npm install
-
-# Build
-npm run build
-
-# Build the worker container
-docker build -t jules-worker .
-
-# Set your GitHub token
-export GITHUB_TOKEN=ghp_xxxxx
-# Or save it permanently:
-jules config githubToken ghp_xxxxx
+cd /root/repos/jules-clone
+export GITHUB_TOKEN=$(gh auth token)
 
 # Create a task
-jules new owner/repo "Add a health check endpoint"
+jules new owner/repo "Add feature X"
 
 # Check status
 jules status <task-id>
@@ -35,240 +31,260 @@ jules logs <task-id>
 
 ## Commands
 
-### Core Commands
+### Core
 
-#### `jules new <repo> "<prompt>"`
-
-Create and start a new coding task.
-
-```bash
-jules new carlulsoe/my-app "Add dark mode support"
-jules new carlulsoe/my-app "Fix the login bug" --base develop
-jules new carlulsoe/my-app "Refactor auth" --branch feature/auth-refactor
-jules new carlulsoe/my-app "Add tests" --no-start  # Create but don't start
-```
-
-Options:
-- `-b, --branch <name>` — Custom branch name (default: `jules/<id>`)
-- `--base <branch>` — Base branch (default: auto-detect from repo)
-- `-m, --model <model>` — Model to use (default: `opencode/glm-4.7-free`)
-- `--no-start` — Create task without starting it
-
-#### `jules list`
-
-List all tasks.
-
-```bash
-jules list
-jules list --status running
-jules list -n 20
-```
-
-#### `jules status <id>`
-
-Get detailed status of a task.
-
-#### `jules logs <id>`
-
-View container logs for a task.
-
-```bash
-jules logs abc123
-jules logs abc123 --tail 200
-```
+| Command | Description |
+|---------|-------------|
+| `jules new <repo> "<prompt>"` | Create and start a coding task |
+| `jules list` | List all tasks |
+| `jules status <id>` | Get task details |
+| `jules logs <id>` | View container logs |
 
 ### Task Management
 
-#### `jules start <id>`
-
-Start a pending task (created with `--no-start` or queued due to limits).
-
-#### `jules stop <id>`
-
-Stop a running task.
-
-#### `jules retry <id>`
-
-Retry a failed task.
-
-```bash
-jules retry abc123
-jules retry abc123 --model anthropic/claude-sonnet-4  # Try with better model
-jules retry abc123 --new-branch  # Start fresh on new branch
-```
-
-#### `jules followup <id> "<prompt>"` (alias: `fu`)
-
-Send follow-up instructions to a completed task.
-
-```bash
-jules followup abc123 "Also add tests for the new feature"
-jules fu abc123 "Fix the typo in the docs"
-```
-
-The follow-up:
-- Uses the same branch (continues from where it left off)
-- If a PR exists, adds a comment instead of creating a new PR
-- Creates a new task linked to the parent
+| Command | Description |
+|---------|-------------|
+| `jules start <id>` | Start a pending task |
+| `jules stop <id>` | Stop a running task |
+| `jules retry <id>` | Retry a failed task |
+| `jules followup <id> "<prompt>"` | Continue work on same branch |
 
 ### Monitoring
 
-#### `jules ps`
-
-Show running tasks (like `docker ps`).
-
-```bash
-jules ps        # Show running/pending tasks
-jules ps -a     # Show all tasks
-```
-
-#### `jules watch`
-
-Watch tasks and auto-start queued ones.
-
-```bash
-jules watch                    # Watch with default 10s interval
-jules watch -i 5               # Poll every 5 seconds
-jules watch --no-auto-start    # Don't auto-start pending tasks
-jules watch --once             # Check once and exit
-```
-
-#### `jules webhook`
-
-Start a webhook server to receive GitHub events (PR merged/closed/commented).
-
-```bash
-jules webhook                           # Start on port 3000
-jules webhook -p 8080                   # Custom port
-jules webhook -s "your-webhook-secret"  # With signature verification
-```
-
-Then configure your GitHub repo:
-1. Settings → Webhooks → Add webhook
-2. Payload URL: `http://your-host:3000/webhook`
-3. Content type: `application/json`
-4. Secret: (same as --secret flag)
-5. Events: Pull requests, Issue comments
+| Command | Description |
+|---------|-------------|
+| `jules ps` | Show running tasks |
+| `jules watch` | Watch + auto-start queued tasks |
+| `jules webhook` | Start webhook server for GitHub events |
 
 ### Maintenance
 
-#### `jules clean`
+| Command | Description |
+|---------|-------------|
+| `jules clean` | Remove completed/failed tasks |
+| `jules config` | View/set configuration |
 
-Clean up completed/failed tasks.
+## Workflow Examples
 
+### Simple task
 ```bash
-jules clean              # Remove completed/failed tasks
-jules clean --all        # Remove all tasks
-jules clean --containers # Also remove stopped containers
-jules clean --dry-run    # Preview what would be removed
+jules new privaspeech-org/privaspeech "Add a health check endpoint to the API"
+# Wait for completion...
+jules status <id>
+# PR created automatically!
 ```
 
-#### `jules config`
-
-View or set configuration.
-
+### Follow-up on completed task
 ```bash
-jules config                    # Show all config
-jules config --list             # Same as above
-jules config githubToken        # Get a value
-jules config model gpt-4        # Set a value
-jules config maxConcurrent 3    # Limit parallel tasks
-jules config --path             # Show config file location
+jules followup <id> "Also add tests for the health check"
+# Continues on same branch, comments on existing PR
+```
+
+### Retry with better model
+```bash
+jules retry <id> --model anthropic/claude-sonnet-4
+```
+
+### CI failure auto-fix
+```bash
+# Start webhook server with auto-fix enabled
+jules webhook --auto-fix-ci
+
+# When CI fails, automatically creates follow-up task to fix it
+```
+
+### Greptile/bot review auto-fix
+```bash
+# Start webhook server with review auto-fix
+jules webhook --auto-fix-reviews
+
+# When Greptile (or other bots) post review comments, 
+# automatically creates follow-up task to address them
+
+# Custom bot list (comma-separated)
+jules webhook --auto-fix-reviews --review-bots "greptile[bot],coderabbit[bot]"
+
+# Combine with CI auto-fix for full automation
+jules webhook --auto-fix-ci --auto-fix-reviews
+```
+
+### Parallel tasks with limits
+```bash
+jules config maxConcurrent 3  # Limit to 3 parallel tasks
+jules new repo1 "Task 1"
+jules new repo2 "Task 2"
+jules new repo3 "Task 3"
+jules new repo4 "Task 4"  # Queued, waiting for slot
+
+# Watch will auto-start queued tasks
+jules watch
 ```
 
 ## Configuration
 
-Jules looks for config in:
-1. Environment variables
-2. `./jules.config.json`
-3. `~/.jules/config.json`
-4. `~/.config/jules/config.json`
-
-Example config:
-```json
-{
-  "githubToken": "ghp_xxxxx",
-  "model": "opencode/glm-4.7-free",
-  "workerImage": "jules-worker:latest",
-  "maxConcurrent": 5
-}
+Set GitHub token:
+```bash
+export GITHUB_TOKEN=$(gh auth token)
+# Or persist:
+jules config githubToken $(gh auth token)
 ```
 
-Environment variables:
-- `GITHUB_TOKEN` — GitHub token for cloning and PRs
-- `GH_TOKEN` — Alternative GitHub token variable
-- `JULES_MODEL` — Default model
-- `JULES_TASKS_DIR` — Where to store task files
-- `JULES_WORKER_IMAGE` — Docker image for workers
-- `JULES_MAX_CONCURRENT` — Max parallel tasks (default: 5)
-- `JULES_WEBHOOK_SECRET` — Secret for webhook signature verification
-
-## Parallel Task Limits
-
-By default, Jules allows 5 concurrent tasks. When the limit is reached:
-- New tasks are created but not started automatically
-- Use `jules watch` to auto-start when slots open
-- Or manually start with `jules start <id>`
-
+Set model:
 ```bash
-# Set a lower limit
-jules config maxConcurrent 3
+jules config model opencode/glm-4.7-free  # Free (default)
+jules config model anthropic/claude-sonnet-4  # Better but paid
+```
 
-# Watch will auto-start queued tasks as slots open
-jules watch
+Set parallel limit:
+```bash
+jules config maxConcurrent 5
 ```
 
 ## Models
-
-Default is `opencode/glm-4.7-free` (free tier). Other options:
 
 | Model | Cost | Notes |
 |-------|------|-------|
 | `opencode/glm-4.7-free` | Free | Default, good for simple tasks |
 | `opencode/minimax-m2.1-free` | Free | Alternative free model |
 | `anthropic/claude-sonnet-4` | Paid | Better for complex tasks |
-| `openai/gpt-4.1` | Paid | OpenAI alternative |
 
-## Task Lifecycle
+## Building
 
-```
-PENDING ──────► RUNNING ──────► COMPLETED ──────► (PR Merged)
-    │              │                 │
-    │              ▼                 ▼
-    │           FAILED          (PR Closed)
-    │              │
-    │              ▼
-    └───────► (retry) ────► RUNNING
-```
-
-## Development
-
+If you need to rebuild the Docker image:
 ```bash
-npm run dev    # Watch mode
-npm run build  # Build once
+cd /root/repos/jules-clone
+docker build -t jules-worker .
 ```
 
 ## Architecture
 
 ```
-┌─────────────────┐     ┌──────────────┐     ┌─────────────┐
-│      CLI        │────►│  Task Store  │────►│   Docker    │
-│  jules new/...  │     │  (JSON files)│     │  Container  │
-└─────────────────┘     └──────────────┘     └─────────────┘
-                               │                    │
-                               ▼                    ▼
-                        ┌──────────────┐     ┌─────────────┐
-                        │   Webhook    │◄────│  OpenCode   │
-                        │   Server     │     │  + gh CLI   │
-                        └──────────────┘     └─────────────┘
-                               │                    │
-                               ▼                    ▼
-                        ┌──────────────┐     ┌─────────────┐
-                        │   GitHub     │◄────│  GitHub PR  │
-                        │   Events     │     └─────────────┘
-                        └──────────────┘
+jules new → Task JSON → Docker Container → OpenCode → GitHub PR
+                              ↓
+                        Webhook Server ← GitHub Events (merged/closed/CI)
+                              ↓
+                        Auto-fix CI (optional)
 ```
 
-## License
+## Webhook Server Setup
 
-MIT
+The webhook server needs to be reachable from GitHub. Since our server is behind a firewall, we use a **cloudflared tunnel** to expose it.
+
+### How it works
+
+```
+GitHub → Cloudflare Edge → cloudflared tunnel → localhost:3456 → jules webhook
+```
+
+1. `cloudflared` creates a secure tunnel from Cloudflare's edge to your local port
+2. You get a public URL (e.g., `https://random-words.trycloudflare.com`)
+3. GitHub webhook sends events to this URL
+4. Events flow through the tunnel to the local webhook server
+
+### Quick tunnel (temporary)
+
+Good for testing. URL changes each restart.
+
+```bash
+# Install cloudflared (if needed)
+curl -L -o /usr/local/bin/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+chmod +x /usr/local/bin/cloudflared
+
+# Start tunnel
+cloudflared tunnel --url http://localhost:3456
+
+# Note the URL it prints (e.g., https://foo-bar-baz.trycloudflare.com)
+```
+
+### Full setup script
+
+```bash
+# 1. Generate webhook secret
+export JULES_WEBHOOK_SECRET=$(openssl rand -hex 20)
+echo "Secret: $JULES_WEBHOOK_SECRET"
+
+# 2. Start webhook server
+cd /root/repos/jules-clone
+export GITHUB_TOKEN=$(gh auth token)
+nohup node dist/index.js webhook --port 3456 --auto-fix-ci --auto-fix-reviews > /tmp/jules-webhook.log 2>&1 &
+
+# 3. Start cloudflared tunnel
+cloudflared tunnel --url http://localhost:3456 > /tmp/cloudflared.log 2>&1 &
+sleep 5
+TUNNEL_URL=$(grep -o 'https://[^|]*trycloudflare.com' /tmp/cloudflared.log | head -1)
+echo "Tunnel URL: $TUNNEL_URL"
+
+# 4. Create GitHub webhook (replace owner/repo)
+gh api repos/OWNER/REPO/hooks --method POST --input - <<EOF
+{
+  "name": "web",
+  "config": {
+    "url": "${TUNNEL_URL}/webhook",
+    "content_type": "json",
+    "secret": "$JULES_WEBHOOK_SECRET"
+  },
+  "events": ["pull_request", "issue_comment", "check_run", "pull_request_review", "pull_request_review_comment"],
+  "active": true
+}
+EOF
+```
+
+### Persistent tunnel (production)
+
+For a stable URL that survives restarts, create a named tunnel with a Cloudflare account:
+
+```bash
+# Login to Cloudflare
+cloudflared tunnel login
+
+# Create named tunnel
+cloudflared tunnel create jules-webhook
+
+# Route to a subdomain (requires DNS setup in Cloudflare dashboard)
+cloudflared tunnel route dns jules-webhook jules-webhook.yourdomain.com
+
+# Run with config
+cat > ~/.cloudflared/config.yml <<EOF
+tunnel: jules-webhook
+credentials-file: ~/.cloudflared/<tunnel-id>.json
+ingress:
+  - hostname: jules-webhook.yourdomain.com
+    service: http://localhost:3456
+  - service: http_status:404
+EOF
+
+cloudflared tunnel run jules-webhook
+```
+
+### Current setup (PrivaSpeech)
+
+- **Webhook ID:** 591388697
+- **Tunnel type:** Quick tunnel (temporary URL)
+- **Events:** pull_request, issue_comment, check_run, pull_request_review, pull_request_review_comment
+- **Auto-fix:** CI failures + bot reviews (greptile-apps[bot])
+
+### Checking webhook deliveries
+
+```bash
+# List recent deliveries
+gh api repos/OWNER/REPO/hooks/HOOK_ID/deliveries --jq '.[] | {id, event, status_code}'
+
+# Redeliver a failed one
+gh api repos/OWNER/REPO/hooks/HOOK_ID/deliveries/DELIVERY_ID/attempts --method POST
+```
+
+### Note on Greptile
+
+Greptile does **not** automatically re-review after pushes. The auto-fix loop works for:
+- Initial Greptile review → jules fixes
+- CI failures → jules fixes
+
+But won't create an infinite loop since Greptile only reviews once per PR (unless manually requested).
+
+## Notes
+
+- Tasks run in isolated Docker containers
+- Each task gets its own branch (`jules/<task-id>`)
+- Follow-ups continue on the same branch
+- Webhook server tracks PR lifecycle (merged, closed, CI status)
+- Auto-fix CI creates follow-up tasks when checks fail
