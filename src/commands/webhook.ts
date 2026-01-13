@@ -11,7 +11,7 @@ export const webhookCommand = new Command('webhook')
   .option('-s, --secret <secret>', 'Webhook secret (or JULES_WEBHOOK_SECRET env)')
   .option('--auto-fix-ci', 'Auto-create follow-up tasks when CI fails')
   .option('--auto-fix-reviews', 'Auto-create follow-up tasks from bot review comments (e.g., Greptile)')
-  .option('--review-bots <bots>', 'Comma-separated bot usernames to respond to', 'greptile[bot]')
+  .option('--review-bots <bots>', 'Comma-separated bot usernames to respond to', 'greptile[bot],greptile-apps[bot]')
   .action(async (options) => {
     const config = getConfig();
     const port = parseInt(options.port, 10);

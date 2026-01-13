@@ -132,7 +132,7 @@ export function startWebhookServer(config: WebhookConfig): ReturnType<typeof cre
       const task = prUrl ? findTaskByPrUrl(prUrl) : null;
       
       // Default bot users to respond to
-      const botUsers = config.reviewBotUsers || ['greptile[bot]', 'github-actions[bot]'];
+      const botUsers = config.reviewBotUsers || ['greptile[bot]', 'greptile-apps[bot]', 'github-actions[bot]'];
       const isBot = botUsers.some(bot => reviewer.toLowerCase() === bot.toLowerCase());
       
       if (task && isBot && (reviewState === 'changes_requested' || reviewState === 'commented')) {
@@ -154,7 +154,7 @@ export function startWebhookServer(config: WebhookConfig): ReturnType<typeof cre
       const line = payload.comment?.line || payload.comment?.original_line || null;
       const task = prUrl ? findTaskByPrUrl(prUrl) : null;
       
-      const botUsers = config.reviewBotUsers || ['greptile[bot]', 'github-actions[bot]'];
+      const botUsers = config.reviewBotUsers || ['greptile[bot]', 'greptile-apps[bot]', 'github-actions[bot]'];
       const isBot = botUsers.some(bot => reviewer.toLowerCase() === bot.toLowerCase());
       
       if (task && isBot && commentBody) {
