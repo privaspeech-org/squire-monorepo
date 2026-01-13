@@ -45,41 +45,33 @@ cd repo
 
 # Fetch base branch and create working branch
 echo "=== Setting up branch ${BRANCH} from ${BASE_BRANCH} ==="
-git fetch origin "${BASE_BRANCH}"
-git checkout -b "${BRANCH}" "origin/${BASE_BRANCH}"
-
-# Configure OpenCode
-export OPENCODE_MODEL="${MODEL}"
-export OPENCODE_AUTO_APPROVE=true
-
-# Create the prompt file
-cat > /tmp/task-prompt.md << PROMPT_EOF
-# Task
-
-${PROMPT}
-
-## Instructions
-
-1. Analyze the codebase to understand the structure
-2. Implement the requested changes
-3. Make sure the code compiles/runs without errors
-4. Write clean, idiomatic code following existing patterns
-5. When done, commit your changes with a descriptive message
-
-## Important
-
-- Stay focused on the task
-- Don't make unrelated changes
-- If you encounter blockers, document them clearly
-PROMPT_EOF
+git fetch origin "${BASE_BRANCH}" || git fetch origin main
+git checkout -b "${BRANCH}" "origin/${BASE_BRANCH}" || git checkout -b "${BRANCH}" "origin/main"
 
 echo "=== Running OpenCode ==="
+echo "Model: ${MODEL}"
 echo "Prompt: ${PROMPT}"
 echo ""
 
+# Build the full prompt with context
+FULL_PROMPT="You are working on the repository ${REPO_NAME}.
+
+## Task
+${PROMPT}
+
+## Instructions
+1. Analyze the codebase to understand the structure
+2. Implement the requested changes
+3. Make sure the code compiles/runs without errors (run tests if available)
+4. Write clean, idiomatic code following existing patterns
+5. Commit your changes with a descriptive message
+
+Stay focused on the task. Don't make unrelated changes."
+
 # Run OpenCode with the task
-# The --yes flag auto-approves file changes
-if opencode run --prompt-file /tmp/task-prompt.md --yes; then
+# --model specifies the model to use
+# The output will show what OpenCode is doing
+if opencode run --model "${MODEL}" "${FULL_PROMPT}"; then
     echo "=== OpenCode completed successfully ==="
 else
     echo "=== OpenCode failed ==="
@@ -97,9 +89,9 @@ fi
 # Stage all changes
 git add -A
 
-# Commit
-COMMIT_MSG="Jules: ${PROMPT:0:72}"
-git commit -m "$COMMIT_MSG" || true
+# Commit (OpenCode may have already committed, so this might be a no-op)
+COMMIT_MSG="jules: ${PROMPT:0:72}"
+git commit -m "$COMMIT_MSG" 2>/dev/null || echo "Changes already committed by OpenCode"
 
 # Push branch
 echo "=== Pushing branch ${BRANCH} ==="
@@ -115,12 +107,16 @@ ${PROMPT}
 ---
 *Automated by Jules (task: ${TASK_ID})*"
 
-PR_URL=$(gh pr create --title "$PR_TITLE" --body "$PR_BODY" --base "${BASE_BRANCH}" --head "${BRANCH}" 2>&1)
-PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$' || echo "")
+PR_URL=$(gh pr create --title "$PR_TITLE" --body "$PR_BODY" --base "${BASE_BRANCH}" --head "${BRANCH}" 2>&1) || PR_URL=$(gh pr view --json url -q .url 2>/dev/null || echo "PR creation failed")
+PR_NUMBER=$(echo "$PR_URL" | grep -oE '/pull/[0-9]+' | grep -oE '[0-9]+' || echo "")
 
 echo "=== PR Created: ${PR_URL} ==="
 
 # Update task with success
-update_task "{\"status\": \"completed\", \"prUrl\": \"${PR_URL}\", \"prNumber\": ${PR_NUMBER:-null}, \"completedAt\": \"$(date -Iseconds)\"}"
+if [ -n "$PR_NUMBER" ]; then
+    update_task "{\"status\": \"completed\", \"prUrl\": \"${PR_URL}\", \"prNumber\": ${PR_NUMBER}, \"completedAt\": \"$(date -Iseconds)\"}"
+else
+    update_task "{\"status\": \"completed\", \"prUrl\": \"${PR_URL}\", \"completedAt\": \"$(date -Iseconds)\"}"
+fi
 
 echo "=== Jules Worker Complete ==="

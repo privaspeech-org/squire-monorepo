@@ -18,8 +18,11 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | d
     && apt-get install -y gh \
     && rm -rf /var/lib/apt/lists/*
 
-# Install OpenCode globally
-RUN npm install -g opencode
+# Install OpenCode (download binary from GitHub releases)
+ARG OPENCODE_VERSION=1.1.16
+RUN curl -fsSL "https://github.com/anomalyco/opencode/releases/download/v${OPENCODE_VERSION}/opencode-linux-x64.tar.gz" \
+    | tar xz -C /usr/local/bin \
+    && chmod +x /usr/local/bin/opencode
 
 # Create workspace directory
 WORKDIR /workspace
