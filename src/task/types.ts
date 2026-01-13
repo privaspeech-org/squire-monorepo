@@ -16,6 +16,10 @@ export interface Task {
   prMergedAt?: string;       // When PR was merged
   prClosed?: boolean;        // PR was closed (without merging)
   prClosedAt?: string;       // When PR was closed
+  ciFailed?: boolean;        // CI check failed
+  ciFailedAt?: string;       // When CI failed
+  ciFailedCheck?: string;    // Name of failed check
+  ciFixTaskId?: string;      // Follow-up task created to fix CI
   
   error?: string;            // Error message if failed
   

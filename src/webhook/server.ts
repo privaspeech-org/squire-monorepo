@@ -5,9 +5,12 @@ import { listTasks, updateTask } from '../task/store.js';
 interface WebhookConfig {
   port: number;
   secret?: string;
+  autoFixCi?: boolean;  // Auto-create follow-up on CI failure
+  githubToken?: string; // Needed for auto-fix
   onPrMerged?: (prUrl: string, taskId: string) => void;
   onPrClosed?: (prUrl: string, taskId: string) => void;
   onPrComment?: (prUrl: string, taskId: string, comment: string) => void;
+  onCiFailed?: (prUrl: string, taskId: string, checkName: string, logs: string) => void;
 }
 
 /**
@@ -107,6 +110,44 @@ export function startWebhookServer(config: WebhookConfig): ReturnType<typeof cre
       if (task && comment) {
         config.onPrComment?.(prUrl, task.id, comment);
         console.log(`[webhook] PR comment on ${prUrl}: ${comment.slice(0, 50)}...`);
+      }
+    }
+    
+    // Handle check_run events (CI status)
+    if (event === 'check_run') {
+      const action = payload.action;
+      const conclusion = payload.check_run?.conclusion;
+      const checkName = payload.check_run?.name;
+      const prNumbers = payload.check_run?.pull_requests?.map((pr: any) => pr.number) || [];
+      
+      // Only handle completed failed checks
+      if (action === 'completed' && (conclusion === 'failure' || conclusion === 'timed_out')) {
+        // Find associated task by matching PR
+        const repoFullName = payload.repository?.full_name;
+        const tasks = listTasks();
+        
+        for (const prNumber of prNumbers) {
+          const prUrl = `https://github.com/${repoFullName}/pull/${prNumber}`;
+          const task = tasks.find(t => t.prUrl === prUrl);
+          
+          if (task) {
+            // Get check run output/logs
+            const output = payload.check_run?.output;
+            const summary = output?.summary || '';
+            const text = output?.text || '';
+            const logs = `${summary}\n\n${text}`.trim() || 'No details available';
+            
+            console.log(`[webhook] CI failed on ${prUrl}: ${checkName}`);
+            config.onCiFailed?.(prUrl, task.id, checkName || 'Unknown', logs);
+            
+            // Update task with CI failure info
+            updateTask(task.id, {
+              ciFailed: true,
+              ciFailedAt: new Date().toISOString(),
+              ciFailedCheck: checkName,
+            } as any);
+          }
+        }
       }
     }
     
