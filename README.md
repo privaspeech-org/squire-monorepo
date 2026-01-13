@@ -94,6 +94,29 @@ jules clean --containers # Also remove stopped containers
 jules clean --dry-run    # Preview what would be removed
 ```
 
+### `jules followup <id> "<prompt>"` (alias: `fu`)
+
+Send follow-up instructions to a completed or running task.
+
+```bash
+jules followup abc123 "Also add tests for the new feature"
+jules fu abc123 "Fix the typo in the docs"
+```
+
+The follow-up:
+- Uses the same branch (continues from where it left off)
+- If a PR exists, adds a comment instead of creating a new PR
+- Creates a new task linked to the parent
+
+### `jules ps`
+
+Show running tasks (like `docker ps`).
+
+```bash
+jules ps        # Show running/pending tasks
+jules ps -a     # Show all tasks
+```
+
 ### `jules config`
 
 View or set configuration.

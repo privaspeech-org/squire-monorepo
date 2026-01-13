@@ -54,10 +54,19 @@ if [ -z "${BASE_BRANCH}" ] || [ "${BASE_BRANCH}" = "auto" ]; then
     echo "=== Auto-detected default branch: ${BASE_BRANCH} ==="
 fi
 
-# Fetch base branch and create working branch
-echo "=== Setting up branch ${BRANCH} from ${BASE_BRANCH} ==="
-git fetch origin "${BASE_BRANCH}"
-git checkout -b "${BRANCH}" "origin/${BASE_BRANCH}"
+# Fetch all branches
+git fetch origin
+
+# Check if branch already exists (for follow-ups)
+if git show-ref --verify --quiet "refs/remotes/origin/${BRANCH}"; then
+    echo "=== Branch ${BRANCH} exists - this is a follow-up ==="
+    git checkout -b "${BRANCH}" "origin/${BRANCH}"
+    IS_FOLLOWUP=true
+else
+    echo "=== Creating new branch ${BRANCH} from ${BASE_BRANCH} ==="
+    git checkout -b "${BRANCH}" "origin/${BASE_BRANCH}"
+    IS_FOLLOWUP=false
+fi
 
 echo "=== Running OpenCode ==="
 echo "Model: ${MODEL}"
@@ -110,18 +119,35 @@ echo "=== ${COMMITS_AHEAD} commit(s) to push ==="
 echo "=== Pushing branch ${BRANCH} ==="
 git push -u origin "${BRANCH}"
 
-# Create PR
-echo "=== Creating Pull Request ==="
-PR_TITLE="[Jules] ${PROMPT:0:100}"
-PR_BODY="## Task
+# Check if PR already exists (for follow-ups)
+EXISTING_PR=$(gh pr view "${BRANCH}" --json url,number -q '.url' 2>/dev/null || echo "")
+
+if [ -n "$EXISTING_PR" ]; then
+    echo "=== PR already exists (follow-up): ${EXISTING_PR} ==="
+    PR_URL="$EXISTING_PR"
+    PR_NUMBER=$(echo "$PR_URL" | grep -oE '/pull/[0-9]+' | grep -oE '[0-9]+' || echo "")
+    
+    # Add a comment about the follow-up
+    gh pr comment "${BRANCH}" --body "## Follow-up Task
+
+${PROMPT}
+
+---
+*Follow-up by Jules (task: ${TASK_ID})*" 2>/dev/null || true
+else
+    # Create new PR
+    echo "=== Creating Pull Request ==="
+    PR_TITLE="[Jules] ${PROMPT:0:100}"
+    PR_BODY="## Task
 
 ${PROMPT}
 
 ---
 *Automated by Jules (task: ${TASK_ID})*"
 
-PR_URL=$(gh pr create --title "$PR_TITLE" --body "$PR_BODY" --base "${BASE_BRANCH}" --head "${BRANCH}" 2>&1) || PR_URL=$(gh pr view --json url -q .url 2>/dev/null || echo "PR creation failed")
-PR_NUMBER=$(echo "$PR_URL" | grep -oE '/pull/[0-9]+' | grep -oE '[0-9]+' || echo "")
+    PR_URL=$(gh pr create --title "$PR_TITLE" --body "$PR_BODY" --base "${BASE_BRANCH}" --head "${BRANCH}" 2>&1) || PR_URL=$(gh pr view --json url -q .url 2>/dev/null || echo "PR creation failed")
+    PR_NUMBER=$(echo "$PR_URL" | grep -oE '/pull/[0-9]+' | grep -oE '[0-9]+' || echo "")
+fi
 
 echo "=== PR Created: ${PR_URL} ==="
 

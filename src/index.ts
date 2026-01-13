@@ -9,6 +9,8 @@ import { startCommand } from './commands/start.js';
 import { stopCommand } from './commands/stop.js';
 import { cleanCommand } from './commands/clean.js';
 import { configCommand } from './commands/config.js';
+import { followupCommand } from './commands/followup.js';
+import { psCommand } from './commands/ps.js';
 
 const program = new Command();
 
@@ -25,5 +27,7 @@ program.addCommand(startCommand);
 program.addCommand(stopCommand);
 program.addCommand(cleanCommand);
 program.addCommand(configCommand);
+program.addCommand(followupCommand);
+program.addCommand(psCommand);
 
 program.parse();
