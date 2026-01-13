@@ -27,8 +27,13 @@ git config --global user.name "Jules Bot"
 git config --global user.email "jules@localhost"
 git config --global init.defaultBranch main
 
-# Configure GitHub CLI
-echo "${GITHUB_TOKEN}" | gh auth login --with-token
+# Configure git to use GITHUB_TOKEN for authentication
+# Store credentials in a file that git can use
+echo "https://x-access-token:${GITHUB_TOKEN}@github.com" > ~/.git-credentials
+git config --global credential.helper store
+
+# GitHub CLI will use GITHUB_TOKEN environment variable automatically
+gh auth status || true
 
 # Parse repo (handle both "owner/repo" and full URLs)
 if [[ "$REPO" == http* ]]; then
@@ -79,19 +84,21 @@ else
     exit 1
 fi
 
-# Check if there are changes to commit
-if git diff --quiet && git diff --staged --quiet; then
-    echo "=== No changes made ==="
+# Check if there are changes to push
+# First, stage and commit any uncommitted changes
+git add -A
+COMMIT_MSG="jules: ${PROMPT:0:72}"
+git commit -m "$COMMIT_MSG" 2>/dev/null || true
+
+# Check if we have commits ahead of origin
+COMMITS_AHEAD=$(git rev-list --count origin/${BASE_BRANCH}..HEAD 2>/dev/null || echo "0")
+if [ "$COMMITS_AHEAD" = "0" ]; then
+    echo "=== No changes to push ==="
     update_task '{"status": "failed", "error": "No changes were made", "completedAt": "'$(date -Iseconds)'"}'
     exit 1
 fi
 
-# Stage all changes
-git add -A
-
-# Commit (OpenCode may have already committed, so this might be a no-op)
-COMMIT_MSG="jules: ${PROMPT:0:72}"
-git commit -m "$COMMIT_MSG" 2>/dev/null || echo "Changes already committed by OpenCode"
+echo "=== ${COMMITS_AHEAD} commit(s) to push ==="
 
 # Push branch
 echo "=== Pushing branch ${BRANCH} ==="
