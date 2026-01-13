@@ -48,10 +48,16 @@ echo "=== Cloning ${REPO_NAME} ==="
 gh repo clone "${REPO_NAME}" repo -- --depth=50
 cd repo
 
+# Auto-detect default branch if not specified or set to "auto"
+if [ -z "${BASE_BRANCH}" ] || [ "${BASE_BRANCH}" = "auto" ]; then
+    BASE_BRANCH=$(gh repo view "${REPO_NAME}" --json defaultBranchRef -q '.defaultBranchRef.name' 2>/dev/null || echo "main")
+    echo "=== Auto-detected default branch: ${BASE_BRANCH} ==="
+fi
+
 # Fetch base branch and create working branch
 echo "=== Setting up branch ${BRANCH} from ${BASE_BRANCH} ==="
-git fetch origin "${BASE_BRANCH}" || git fetch origin main
-git checkout -b "${BRANCH}" "origin/${BASE_BRANCH}" || git checkout -b "${BRANCH}" "origin/main"
+git fetch origin "${BASE_BRANCH}"
+git checkout -b "${BRANCH}" "origin/${BASE_BRANCH}"
 
 echo "=== Running OpenCode ==="
 echo "Model: ${MODEL}"

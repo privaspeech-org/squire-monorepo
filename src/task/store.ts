@@ -24,7 +24,7 @@ export function createTask(options: TaskCreateOptions): Task {
     repo: options.repo,
     prompt: options.prompt,
     branch: options.branch || `jules/${id}`,
-    baseBranch: options.baseBranch || 'main',
+    baseBranch: options.baseBranch || 'auto',  // Auto-detect default branch
     status: 'pending',
     createdAt: new Date().toISOString(),
   };

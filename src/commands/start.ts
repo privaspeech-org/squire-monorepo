@@ -1,0 +1,55 @@
+import { Command } from 'commander';
+import chalk from 'chalk';
+import { getTask } from '../task/store.js';
+import { startTaskContainer } from '../worker/container.js';
+import { getConfig } from '../config.js';
+
+export const startCommand = new Command('start')
+  .description('Start a pending task')
+  .argument('<id>', 'Task ID')
+  .option('-m, --model <model>', 'Model to use')
+  .action(async (id: string, options) => {
+    const config = getConfig();
+    
+    if (!config.githubToken) {
+      console.error(chalk.red('Error: GITHUB_TOKEN not set'));
+      console.error('Set it via environment variable or in ~/.jules/config.json');
+      process.exit(1);
+    }
+    
+    const task = getTask(id);
+    
+    if (!task) {
+      console.error(chalk.red(`Task ${id} not found`));
+      process.exit(1);
+    }
+    
+    if (task.status !== 'pending') {
+      console.error(chalk.yellow(`Task ${id} is ${task.status}, not pending`));
+      if (task.status === 'running') {
+        console.error('Use `jules logs` to view progress');
+      }
+      process.exit(1);
+    }
+    
+    console.log(chalk.dim('Starting worker container...'));
+    
+    try {
+      const containerId = await startTaskContainer({
+        task,
+        githubToken: config.githubToken,
+        model: options.model || config.model,
+        verbose: true,
+      });
+      
+      console.log(chalk.green('✓') + ` Task running in container ${chalk.dim(containerId.slice(0, 12))}`);
+      console.log(chalk.dim('\nCheck status with:'));
+      console.log(`  jules status ${task.id}`);
+      console.log(chalk.dim('View logs with:'));
+      console.log(`  jules logs ${task.id}`);
+    } catch (error) {
+      console.error(chalk.red('\nFailed to start container:'));
+      console.error(error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
