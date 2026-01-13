@@ -34,4 +34,9 @@ RUN chmod +x /entrypoint.sh
 # Copy agent prompt
 COPY worker/agent-prompt.md /agent-prompt.md
 
+# Copy OpenCode config that auto-approves all permissions
+# This is safe because we're in an isolated container
+RUN mkdir -p /root/.config/opencode
+COPY worker/opencode.json /root/.config/opencode/opencode.json
+
 ENTRYPOINT ["/entrypoint.sh"]
