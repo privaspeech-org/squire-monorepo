@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { nanoid } from 'nanoid';
 import type { Task, TaskCreateOptions, TaskStatus } from './types.js';
@@ -76,7 +76,6 @@ export function deleteTask(id: string): boolean {
   if (!existsSync(path)) {
     return false;
   }
-  const { unlinkSync } = require('node:fs');
   unlinkSync(path);
   return true;
 }
