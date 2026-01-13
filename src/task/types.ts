@@ -21,6 +21,9 @@ export interface Task {
   ciFailedCheck?: string;    // Name of failed check
   ciFixTaskId?: string;      // Follow-up task created to fix CI
   
+  reviewFixTaskId?: string;  // Follow-up task created to address review comments
+  reviewFixedAt?: string;    // When review fix task was created
+  
   error?: string;            // Error message if failed
   
   createdAt: string;         // ISO timestamp

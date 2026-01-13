@@ -2,15 +2,24 @@ import { createServer, IncomingMessage, ServerResponse } from 'node:http';
 import { createHmac } from 'node:crypto';
 import { listTasks, updateTask } from '../task/store.js';
 
+interface ReviewComment {
+  path: string;
+  line: number | null;
+  body: string;
+}
+
 interface WebhookConfig {
   port: number;
   secret?: string;
-  autoFixCi?: boolean;  // Auto-create follow-up on CI failure
-  githubToken?: string; // Needed for auto-fix
+  autoFixCi?: boolean;      // Auto-create follow-up on CI failure
+  autoFixReviews?: boolean; // Auto-create follow-up on bot review comments
+  reviewBotUsers?: string[]; // Bot usernames to respond to (default: greptile[bot])
+  githubToken?: string;     // Needed for auto-fix
   onPrMerged?: (prUrl: string, taskId: string) => void;
   onPrClosed?: (prUrl: string, taskId: string) => void;
-  onPrComment?: (prUrl: string, taskId: string, comment: string) => void;
+  onPrComment?: (prUrl: string, taskId: string, comment: string, author: string) => void;
   onCiFailed?: (prUrl: string, taskId: string, checkName: string, logs: string) => void;
+  onBotReview?: (prUrl: string, taskId: string, reviewer: string, body: string, comments: ReviewComment[]) => void;
 }
 
 /**
@@ -105,11 +114,53 @@ export function startWebhookServer(config: WebhookConfig): ReturnType<typeof cre
     if (event === 'issue_comment' && payload.issue?.pull_request) {
       const prUrl = payload.issue.html_url;
       const comment = payload.comment?.body;
+      const author = payload.comment?.user?.login || 'unknown';
       const task = findTaskByPrUrl(prUrl);
       
       if (task && comment) {
-        config.onPrComment?.(prUrl, task.id, comment);
-        console.log(`[webhook] PR comment on ${prUrl}: ${comment.slice(0, 50)}...`);
+        config.onPrComment?.(prUrl, task.id, comment, author);
+        console.log(`[webhook] PR comment on ${prUrl} by ${author}: ${comment.slice(0, 50)}...`);
+      }
+    }
+    
+    // Handle pull_request_review events (formal reviews from bots like Greptile)
+    if (event === 'pull_request_review') {
+      const prUrl = payload.pull_request?.html_url;
+      const reviewer = payload.review?.user?.login || 'unknown';
+      const reviewBody = payload.review?.body || '';
+      const reviewState = payload.review?.state; // 'approved', 'changes_requested', 'commented'
+      const task = prUrl ? findTaskByPrUrl(prUrl) : null;
+      
+      // Default bot users to respond to
+      const botUsers = config.reviewBotUsers || ['greptile[bot]', 'github-actions[bot]'];
+      const isBot = botUsers.some(bot => reviewer.toLowerCase() === bot.toLowerCase());
+      
+      if (task && isBot && (reviewState === 'changes_requested' || reviewState === 'commented')) {
+        // Fetch inline comments if available (they come in separate events, but review body has summary)
+        const comments: ReviewComment[] = [];
+        
+        // The review body often contains the summary from Greptile
+        config.onBotReview?.(prUrl, task.id, reviewer, reviewBody, comments);
+        console.log(`[webhook] Bot review on ${prUrl} by ${reviewer} (${reviewState})`);
+      }
+    }
+    
+    // Handle pull_request_review_comment events (inline review comments)
+    if (event === 'pull_request_review_comment') {
+      const prUrl = payload.pull_request?.html_url;
+      const reviewer = payload.comment?.user?.login || 'unknown';
+      const commentBody = payload.comment?.body || '';
+      const path = payload.comment?.path || '';
+      const line = payload.comment?.line || payload.comment?.original_line || null;
+      const task = prUrl ? findTaskByPrUrl(prUrl) : null;
+      
+      const botUsers = config.reviewBotUsers || ['greptile[bot]', 'github-actions[bot]'];
+      const isBot = botUsers.some(bot => reviewer.toLowerCase() === bot.toLowerCase());
+      
+      if (task && isBot && commentBody) {
+        const comments: ReviewComment[] = [{ path, line, body: commentBody }];
+        config.onBotReview?.(prUrl, task.id, reviewer, '', comments);
+        console.log(`[webhook] Bot inline comment on ${prUrl} by ${reviewer}: ${path}:${line}`);
       }
     }
     
