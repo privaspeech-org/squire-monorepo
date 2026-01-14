@@ -15,9 +15,10 @@
   "author": "Carl Ulsøe",
   "license": "MIT",
   "dependencies": {
+    "ai": "^6.0.0",
+    "@ai-sdk/openai": "^1.0.0",
     "yaml": "^2.3.4",
-    "commander": "^12.0.0",
-    "openai": "^4.20.0"
+    "commander": "^12.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
