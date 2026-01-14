@@ -2,6 +2,9 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { getTask, updateTask } from '../task/store.js';
 import { stopContainer, isContainerRunning } from '../worker/container.js';
+import { debug, info, createLogger } from '../utils/logger.js';
+
+const logger = createLogger('cli');
 
 export const stopCommand = new Command('stop')
   .description('Stop a running task')
@@ -41,6 +44,8 @@ export const stopCommand = new Command('stop')
         error: 'Stopped by user',
         completedAt: new Date().toISOString(),
       });
+      
+      info('cli', 'Task stopped', { taskId: id });
       console.log(chalk.green('✓') + ' Task stopped');
     } catch (error) {
       console.error(chalk.red('Failed to stop container:'));

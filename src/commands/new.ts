@@ -4,6 +4,9 @@ import { createTask } from '../task/store.js';
 import { startTaskContainer } from '../worker/container.js';
 import { getConfig } from '../config.js';
 import { canStartNewTask } from '../task/limits.js';
+import { debug, info, createLogger } from '../utils/logger.js';
+
+const logger = createLogger('cli');
 
 export const newCommand = new Command('new')
   .description('Create and start a new coding task')
@@ -13,6 +16,7 @@ export const newCommand = new Command('new')
   .option('--base <base>', 'Base branch (default: main)')
   .option('-m, --model <model>', 'Model to use (default: opencode/glm-4.7-free)')
   .option('--no-start', 'Create task but don\'t start it')
+  .option('-v, --verbose', 'Enable verbose output')
   .action(async (repo: string, prompt: string, options) => {
     const config = getConfig();
     
@@ -21,6 +25,8 @@ export const newCommand = new Command('new')
       console.error('Set it via environment variable or in ~/.squire/config.json');
       process.exit(1);
     }
+    
+    debug('cli', 'Creating new task', { repo, branch: options.branch, baseBranch: options.base });
     
     // Create the task
     const task = createTask({
@@ -58,8 +64,10 @@ export const newCommand = new Command('new')
         task,
         githubToken: config.githubToken,
         model: options.model || config.model,
-        verbose: true,
+        verbose: options.verbose,
       });
+      
+      info('cli', 'Task started', { taskId: task.id, containerId: containerId.slice(0, 12) });
       
       console.log(chalk.green('✓') + ` Task running in container ${chalk.dim(containerId.slice(0, 12))}`);
       console.log(chalk.dim('\nCheck status with:'));

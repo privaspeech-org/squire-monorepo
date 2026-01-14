@@ -1,6 +1,9 @@
 import { listTasks, updateTask } from './store.js';
 import { isContainerRunning, getContainerExitCode } from '../worker/container.js';
 import { getConfig } from '../config.js';
+import { debug, createLogger } from '../utils/logger.js';
+
+const logger = createLogger('limits');
 
 /**
  * Count currently running tasks.
@@ -30,9 +33,16 @@ export async function countRunningTasks(): Promise<number> {
         error: exitCode !== 0 ? `Container exited with code ${exitCode}` : undefined,
         completedAt: new Date().toISOString(),
       });
+      
+      debug('limits', 'Task container stopped', {
+        taskId: task.id,
+        newStatus,
+        exitCode,
+      });
     }
   }
   
+  debug('limits', 'Running tasks count', { count: runningCount });
   return runningCount;
 }
 

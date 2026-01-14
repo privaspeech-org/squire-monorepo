@@ -3,6 +3,9 @@ import chalk from 'chalk';
 import { getTask, createTask, updateTask } from '../task/store.js';
 import { startTaskContainer } from '../worker/container.js';
 import { getConfig } from '../config.js';
+import { debug, info, createLogger } from '../utils/logger.js';
+
+const logger = createLogger('cli');
 
 export const followupCommand = new Command('followup')
   .alias('fu')
@@ -11,6 +14,7 @@ export const followupCommand = new Command('followup')
   .argument('<prompt>', 'Additional instructions')
   .option('-m, --model <model>', 'Model to use')
   .option('--no-start', 'Create follow-up task but don\'t start it')
+  .option('-v, --verbose', 'Enable verbose output')
   .action(async (id: string, prompt: string, options) => {
     const config = getConfig();
     
@@ -26,11 +30,16 @@ export const followupCommand = new Command('followup')
       process.exit(1);
     }
     
+    debug('cli', 'Creating follow-up task', {
+      parentTaskId: id,
+      promptLength: prompt.length,
+    });
+    
     // Create follow-up task on the same branch
     const followupTask = createTask({
       repo: parentTask.repo,
       prompt: prompt,
-      branch: parentTask.branch,  // Same branch - continues the work
+      branch: parentTask.branch,
       baseBranch: parentTask.baseBranch,
     });
     
@@ -57,7 +66,13 @@ export const followupCommand = new Command('followup')
         task: followupTask,
         githubToken: config.githubToken,
         model: options.model || config.model,
-        verbose: true,
+        verbose: options.verbose,
+      });
+      
+      info('cli', 'Follow-up task started', {
+        parentTaskId: id,
+        followupTaskId: followupTask.id,
+        containerId: containerId.slice(0, 12),
       });
       
       console.log(chalk.green('✓') + ` Follow-up running in container ${chalk.dim(containerId.slice(0, 12))}`);

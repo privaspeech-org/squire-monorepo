@@ -3,11 +3,15 @@ import chalk from 'chalk';
 import { getTask } from '../task/store.js';
 import { startTaskContainer } from '../worker/container.js';
 import { getConfig } from '../config.js';
+import { debug, info, createLogger } from '../utils/logger.js';
+
+const logger = createLogger('cli');
 
 export const startCommand = new Command('start')
   .description('Start a pending task')
   .argument('<id>', 'Task ID')
   .option('-m, --model <model>', 'Model to use')
+  .option('-v, --verbose', 'Enable verbose output')
   .action(async (id: string, options) => {
     const config = getConfig();
     
@@ -32,6 +36,7 @@ export const startCommand = new Command('start')
       process.exit(1);
     }
     
+    debug('cli', 'Starting task', { taskId: id });
     console.log(chalk.dim('Starting worker container...'));
     
     try {
@@ -39,8 +44,10 @@ export const startCommand = new Command('start')
         task,
         githubToken: config.githubToken,
         model: options.model || config.model,
-        verbose: true,
+        verbose: options.verbose,
       });
+      
+      info('cli', 'Task started', { taskId: task.id, containerId: containerId.slice(0, 12) });
       
       console.log(chalk.green('✓') + ` Task running in container ${chalk.dim(containerId.slice(0, 12))}`);
       console.log(chalk.dim('\nCheck status with:'));

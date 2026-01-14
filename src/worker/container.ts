@@ -1,6 +1,9 @@
 import Docker from 'dockerode';
 import type { Task } from '../task/types.js';
 import { updateTask } from '../task/store.js';
+import { debug, info, warn, error, createLogger } from '../utils/logger.js';
+
+const logger = createLogger('container');
 
 const docker = new Docker();
 
@@ -19,6 +22,12 @@ export interface ContainerOptions {
  */
 export async function startTaskContainer(options: ContainerOptions): Promise<string> {
   const { task, githubToken, model, verbose } = options;
+  
+  info('container', 'Starting task container', {
+    taskId: task.id,
+    repo: task.repo,
+    branch: task.branch,
+  });
   
   // Environment variables for the worker
   const env = [
@@ -41,12 +50,18 @@ export async function startTaskContainer(options: ContainerOptions): Promise<str
       Binds: [
         `${tasksDir}:/tasks:rw`,
       ],
-      AutoRemove: false, // Keep container for logs
+      AutoRemove: false,
     },
     Labels: {
       'squire.task.id': task.id,
       'squire.repo': task.repo,
     },
+  });
+  
+  debug('container', 'Container created', {
+    taskId: task.id,
+    containerId: container.id,
+    image: WORKER_IMAGE,
   });
   
   // Start the container (async, detached)
@@ -61,8 +76,16 @@ export async function startTaskContainer(options: ContainerOptions): Promise<str
     startedAt: new Date().toISOString(),
   });
   
+  info('container', 'Container started', {
+    taskId: task.id,
+    containerId: containerId.slice(0, 12),
+  });
+  
   if (verbose) {
-    console.log(`Started container ${containerId.slice(0, 12)} for task ${task.id}`);
+    debug('container', 'Container started (verbose)', {
+      taskId: task.id,
+      fullContainerId: containerId,
+    });
   }
   
   return containerId;
@@ -72,6 +95,11 @@ export async function startTaskContainer(options: ContainerOptions): Promise<str
  * Get logs from a task's container.
  */
 export async function getContainerLogs(containerId: string, tail?: number): Promise<string> {
+  debug('container', 'Fetching container logs', {
+    containerId: containerId.slice(0, 12),
+    tail,
+  });
+  
   const container = docker.getContainer(containerId);
   
   const logs = await container.logs({
@@ -81,8 +109,11 @@ export async function getContainerLogs(containerId: string, tail?: number): Prom
     follow: false,
   });
   
-  // Docker logs come as a Buffer with multiplexed stdout/stderr
-  // For simplicity, just convert to string
+  debug('container', 'Container logs retrieved', {
+    containerId: containerId.slice(0, 12),
+    logLength: logs.length,
+  });
+  
   return logs.toString('utf-8');
 }
 
@@ -119,16 +150,32 @@ export async function getContainerExitCode(containerId: string): Promise<number 
  * Stop a running container.
  */
 export async function stopContainer(containerId: string): Promise<void> {
+  info('container', 'Stopping container', {
+    containerId: containerId.slice(0, 12),
+  });
+  
   const container = docker.getContainer(containerId);
   await container.stop();
+  
+  info('container', 'Container stopped', {
+    containerId: containerId.slice(0, 12),
+  });
 }
 
 /**
  * Remove a container (for cleanup).
  */
 export async function removeContainer(containerId: string): Promise<void> {
+  info('container', 'Removing container', {
+    containerId: containerId.slice(0, 12),
+  });
+  
   const container = docker.getContainer(containerId);
   await container.remove({ force: true });
+  
+  debug('container', 'Container removed', {
+    containerId: containerId.slice(0, 12),
+  });
 }
 
 /**
@@ -141,5 +188,7 @@ export async function listSquireContainers(): Promise<Docker.ContainerInfo[]> {
       label: ['squire.task.id'],
     },
   });
+  
+  debug('container', 'Listed squire containers', { count: containers.length });
   return containers;
 }

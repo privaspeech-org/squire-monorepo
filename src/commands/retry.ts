@@ -3,12 +3,16 @@ import chalk from 'chalk';
 import { getTask, createTask } from '../task/store.js';
 import { startTaskContainer } from '../worker/container.js';
 import { getConfig } from '../config.js';
+import { debug, info, createLogger } from '../utils/logger.js';
+
+const logger = createLogger('cli');
 
 export const retryCommand = new Command('retry')
   .description('Retry a failed task')
   .argument('<id>', 'Task ID to retry')
   .option('-m, --model <model>', 'Use a different model')
   .option('--new-branch', 'Create a new branch instead of reusing')
+  .option('-v, --verbose', 'Enable verbose output')
   .action(async (id: string, options) => {
     const config = getConfig();
     
@@ -30,6 +34,8 @@ export const retryCommand = new Command('retry')
       process.exit(1);
     }
     
+    debug('cli', 'Retrying failed task', { originalTaskId: id, newBranch: options.newBranch });
+    
     // Create retry task
     const retryTask = createTask({
       repo: failedTask.repo,
@@ -50,7 +56,13 @@ export const retryCommand = new Command('retry')
         task: retryTask,
         githubToken: config.githubToken,
         model: options.model || config.model,
-        verbose: true,
+        verbose: options.verbose,
+      });
+      
+      info('cli', 'Retry task started', {
+        originalTaskId: id,
+        retryTaskId: retryTask.id,
+        containerId: containerId.slice(0, 12),
       });
       
       console.log(chalk.green('✓') + ` Retry running in container ${chalk.dim(containerId.slice(0, 12))}`);

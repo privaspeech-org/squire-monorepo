@@ -1,16 +1,20 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { listTasks, getTask, updateTask } from '../task/store.js';
-import { isContainerRunning, getContainerExitCode, getContainerLogs } from '../worker/container.js';
+import { isContainerRunning, getContainerExitCode } from '../worker/container.js';
 import { startTaskContainer } from '../worker/container.js';
 import { getConfig } from '../config.js';
 import { canStartNewTask } from '../task/limits.js';
+import { debug, info, warn, createLogger } from '../utils/logger.js';
+
+const logger = createLogger('watch');
 
 export const watchCommand = new Command('watch')
   .description('Watch tasks and auto-start queued ones')
   .option('-i, --interval <seconds>', 'Poll interval in seconds', '10')
   .option('--no-auto-start', 'Don\'t auto-start pending tasks')
   .option('--once', 'Check once and exit')
+  .option('-v, --verbose', 'Enable verbose output')
   .action(async (options) => {
     const config = getConfig();
     const interval = parseInt(options.interval, 10) * 1000;
@@ -18,6 +22,9 @@ export const watchCommand = new Command('watch')
     const check = async () => {
       // Update status of running tasks
       const runningTasks = listTasks('running');
+      
+      debug('watch', 'Checking running tasks', { count: runningTasks.length });
+      
       for (const task of runningTasks) {
         if (!task.containerId) continue;
         
@@ -34,8 +41,10 @@ export const watchCommand = new Command('watch')
           // Get PR URL from task if completed
           const updated = getTask(task.id);
           if (newStatus === 'completed' && updated?.prUrl) {
+            info('watch', 'Task completed', { taskId: task.id, prUrl: updated.prUrl });
             console.log(chalk.green('✓') + ` ${task.id} completed → ${updated.prUrl}`);
           } else if (newStatus === 'failed') {
+            warn('watch', 'Task failed', { taskId: task.id, exitCode });
             console.log(chalk.red('✗') + ` ${task.id} failed`);
           }
         }
@@ -49,6 +58,7 @@ export const watchCommand = new Command('watch')
           const { allowed, running, max } = await canStartNewTask();
           if (!allowed) break;
           
+          info('watch', 'Auto-starting task', { taskId: task.id, running: running + 1, max });
           console.log(chalk.blue('▶') + ` Starting ${task.id} (${running + 1}/${max})...`);
           
           try {
@@ -56,7 +66,7 @@ export const watchCommand = new Command('watch')
               task,
               githubToken: config.githubToken,
               model: config.model,
-              verbose: false,
+              verbose: options.verbose,
             });
           } catch (error) {
             console.error(chalk.red(`Failed to start ${task.id}:`), error);
@@ -72,6 +82,10 @@ export const watchCommand = new Command('watch')
         completed: tasks.filter(t => t.status === 'completed').length,
         failed: tasks.filter(t => t.status === 'failed').length,
       };
+      
+      if (options.verbose) {
+        debug('watch', 'Current status', counts);
+      }
       
       if (!options.once) {
         process.stdout.write(`\r${chalk.dim('Status:')} ${chalk.blue(counts.running)} running, ${chalk.yellow(counts.pending)} pending, ${chalk.green(counts.completed)} done, ${chalk.red(counts.failed)} failed`);

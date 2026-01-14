@@ -1,6 +1,9 @@
 import { createServer, IncomingMessage, ServerResponse } from 'node:http';
 import { createHmac } from 'node:crypto';
 import { listTasks, updateTask } from '../task/store.js';
+import { debug, info, warn, createLogger } from '../utils/logger.js';
+
+const logger = createLogger('webhook');
 
 interface ReviewComment {
   path: string;
@@ -11,10 +14,10 @@ interface ReviewComment {
 interface WebhookConfig {
   port: number;
   secret?: string;
-  autoFixCi?: boolean;      // Auto-create follow-up on CI failure
-  autoFixReviews?: boolean; // Auto-create follow-up on bot review comments
-  reviewBotUsers?: string[]; // Bot usernames to respond to (default: greptile[bot])
-  githubToken?: string;     // Needed for auto-fix
+  autoFixCi?: boolean;
+  autoFixReviews?: boolean;
+  reviewBotUsers?: string[];
+  githubToken?: string;
   onPrMerged?: (prUrl: string, taskId: string) => void;
   onPrClosed?: (prUrl: string, taskId: string) => void;
   onPrComment?: (prUrl: string, taskId: string, comment: string, author: string) => void;
@@ -45,6 +48,18 @@ function verifySignature(payload: string, signature: string | undefined, secret:
  */
 export function startWebhookServer(config: WebhookConfig): ReturnType<typeof createServer> {
   const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
+    const requestId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    
+    debug('webhook', 'Incoming request', {
+      requestId,
+      method: req.method,
+      url: req.url,
+      headers: {
+        'x-github-event': req.headers['x-github-event'],
+        'x-hub-signature-256': req.headers['x-hub-signature-256'] ? '[present]' : '[missing]',
+      },
+    });
+    
     if (req.method !== 'POST' || req.url !== '/webhook') {
       res.writeHead(404);
       res.end('Not found');
@@ -62,6 +77,7 @@ export function startWebhookServer(config: WebhookConfig): ReturnType<typeof cre
     if (config.secret) {
       const signature = req.headers['x-hub-signature-256'] as string | undefined;
       if (!verifySignature(body, signature, config.secret)) {
+        warn('webhook', 'Invalid webhook signature', { requestId });
         res.writeHead(401);
         res.end('Invalid signature');
         return;
@@ -74,11 +90,18 @@ export function startWebhookServer(config: WebhookConfig): ReturnType<typeof cre
     
     try {
       payload = JSON.parse(body);
-    } catch {
+    } catch (parseError) {
+      warn('webhook', 'Invalid JSON in webhook payload', { requestId });
       res.writeHead(400);
       res.end('Invalid JSON');
       return;
     }
+    
+    debug('webhook', 'Processing webhook event', {
+      requestId,
+      event,
+      action: payload.action,
+    });
     
     // Handle pull_request events
     if (event === 'pull_request') {
@@ -96,7 +119,11 @@ export function startWebhookServer(config: WebhookConfig): ReturnType<typeof cre
               prMergedAt: new Date().toISOString(),
             } as any);
             config.onPrMerged?.(prUrl, task.id);
-            console.log(`[webhook] PR merged: ${prUrl} (task: ${task.id})`);
+            info('webhook', 'PR merged', {
+              requestId,
+              taskId: task.id,
+              prUrl,
+            });
           } else if (action === 'closed' && !payload.pull_request?.merged) {
             // PR was closed without merging
             updateTask(task.id, { 
@@ -104,7 +131,18 @@ export function startWebhookServer(config: WebhookConfig): ReturnType<typeof cre
               prClosedAt: new Date().toISOString(),
             } as any);
             config.onPrClosed?.(prUrl, task.id);
-            console.log(`[webhook] PR closed: ${prUrl} (task: ${task.id})`);
+            info('webhook', 'PR closed', {
+              requestId,
+              taskId: task.id,
+              prUrl,
+            });
+          } else {
+            debug('webhook', 'PR action received', {
+              requestId,
+              taskId: task.id,
+              prUrl,
+              action,
+            });
           }
         }
       }
@@ -119,7 +157,13 @@ export function startWebhookServer(config: WebhookConfig): ReturnType<typeof cre
       
       if (task && comment) {
         config.onPrComment?.(prUrl, task.id, comment, author);
-        console.log(`[webhook] PR comment on ${prUrl} by ${author}: ${comment.slice(0, 50)}...`);
+        info('webhook', 'PR comment received', {
+          requestId,
+          taskId: task.id,
+          prUrl,
+          author,
+          commentLength: comment.length,
+        });
       }
     }
     
@@ -128,7 +172,7 @@ export function startWebhookServer(config: WebhookConfig): ReturnType<typeof cre
       const prUrl = payload.pull_request?.html_url;
       const reviewer = payload.review?.user?.login || 'unknown';
       const reviewBody = payload.review?.body || '';
-      const reviewState = payload.review?.state; // 'approved', 'changes_requested', 'commented'
+      const reviewState = payload.review?.state;
       const task = prUrl ? findTaskByPrUrl(prUrl) : null;
       
       // Default bot users to respond to
@@ -136,12 +180,17 @@ export function startWebhookServer(config: WebhookConfig): ReturnType<typeof cre
       const isBot = botUsers.some(bot => reviewer.toLowerCase() === bot.toLowerCase());
       
       if (task && isBot && (reviewState === 'changes_requested' || reviewState === 'commented')) {
-        // Fetch inline comments if available (they come in separate events, but review body has summary)
+        // Fetch inline comments if available
         const comments: ReviewComment[] = [];
         
-        // The review body often contains the summary from Greptile
         config.onBotReview?.(prUrl, task.id, reviewer, reviewBody, comments);
-        console.log(`[webhook] Bot review on ${prUrl} by ${reviewer} (${reviewState})`);
+        info('webhook', 'Bot review received', {
+          requestId,
+          taskId: task.id,
+          prUrl,
+          reviewer,
+          reviewState,
+        });
       }
     }
     
@@ -160,7 +209,14 @@ export function startWebhookServer(config: WebhookConfig): ReturnType<typeof cre
       if (task && isBot && commentBody) {
         const comments: ReviewComment[] = [{ path, line, body: commentBody }];
         config.onBotReview?.(prUrl, task.id, reviewer, '', comments);
-        console.log(`[webhook] Bot inline comment on ${prUrl} by ${reviewer}: ${path}:${line}`);
+        info('webhook', 'Bot inline comment received', {
+          requestId,
+          taskId: task.id,
+          prUrl,
+          reviewer,
+          path,
+          line,
+        });
       }
     }
     
@@ -188,7 +244,14 @@ export function startWebhookServer(config: WebhookConfig): ReturnType<typeof cre
             const text = output?.text || '';
             const logs = `${summary}\n\n${text}`.trim() || 'No details available';
             
-            console.log(`[webhook] CI failed on ${prUrl}: ${checkName}`);
+            warn('webhook', 'CI check failed', {
+              requestId,
+              taskId: task.id,
+              prUrl,
+              checkName,
+              conclusion,
+            });
+            
             config.onCiFailed?.(prUrl, task.id, checkName || 'Unknown', logs);
             
             // Update task with CI failure info
@@ -204,10 +267,14 @@ export function startWebhookServer(config: WebhookConfig): ReturnType<typeof cre
     
     res.writeHead(200);
     res.end('OK');
+    
+    debug('webhook', 'Request completed', { requestId });
   });
   
   server.listen(config.port, () => {
-    console.log(`Webhook server listening on port ${config.port}`);
+    info('webhook', 'Webhook server started', {
+      port: config.port,
+    });
   });
   
   return server;

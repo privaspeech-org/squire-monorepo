@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
+import { setVerbose, setLogLevel } from './utils/logger.js';
 import { newCommand } from './commands/new.js';
 import { listCommand } from './commands/list.js';
 import { statusCommand } from './commands/status.js';
@@ -20,7 +21,13 @@ const program = new Command();
 program
   .name('squire')
   .description('Your trusty squire for background coding tasks - fire and forget, come back to a PR')
-  .version('0.1.0');
+  .version('0.1.0')
+  .option('-v, --verbose', 'Enable debug output')
+  .hook('preAction', (command) => {
+    if (command.opts().verbose) {
+      setVerbose(true);
+    }
+  });
 
 // Core commands
 program.addCommand(newCommand);

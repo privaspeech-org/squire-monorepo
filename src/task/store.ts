@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync, unlink
 import { join } from 'node:path';
 import { nanoid } from 'nanoid';
 import type { Task, TaskCreateOptions, TaskStatus } from './types.js';
+import { debug, info } from '../utils/logger.js';
 
 const TASKS_DIR = process.env.SQUIRE_TASKS_DIR || join(process.cwd(), 'tasks');
 
@@ -24,12 +25,19 @@ export function createTask(options: TaskCreateOptions): Task {
     repo: options.repo,
     prompt: options.prompt,
     branch: options.branch || `squire/${id}`,
-    baseBranch: options.baseBranch || 'auto',  // Auto-detect default branch
+    baseBranch: options.baseBranch || 'auto',
     status: 'pending',
     createdAt: new Date().toISOString(),
   };
   
   writeFileSync(taskPath(id), JSON.stringify(task, null, 2));
+  
+  info('task-store', 'Task created', {
+    taskId: task.id,
+    repo: task.repo,
+    branch: task.branch,
+  });
+  
   return task;
 }
 
@@ -47,8 +55,18 @@ export function updateTask(id: string, updates: Partial<Task>): Task | null {
     return null;
   }
   
+  const oldStatus = task.status;
   const updated = { ...task, ...updates };
   writeFileSync(taskPath(id), JSON.stringify(updated, null, 2));
+  
+  if (updates.status && updates.status !== oldStatus) {
+    info('task-store', 'Task status changed', {
+      taskId: id,
+      oldStatus,
+      newStatus: updates.status,
+    });
+  }
+  
   return updated;
 }
 
@@ -62,13 +80,17 @@ export function listTasks(status?: TaskStatus): Task[] {
   });
   
   if (status) {
-    return tasks.filter(t => t.status === status);
+    const filtered = tasks.filter(t => t.status === status);
+    debug('task-store', 'Listed tasks', { status, count: filtered.length });
+    return filtered;
   }
   
-  // Sort by createdAt descending (newest first)
-  return tasks.sort((a, b) => 
+  const sorted = tasks.sort((a, b) => 
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
+  
+  debug('task-store', 'Listed all tasks', { count: sorted.length });
+  return sorted;
 }
 
 export function deleteTask(id: string): boolean {
@@ -77,5 +99,7 @@ export function deleteTask(id: string): boolean {
     return false;
   }
   unlinkSync(path);
+  
+  info('task-store', 'Task deleted', { taskId: id });
   return true;
 }

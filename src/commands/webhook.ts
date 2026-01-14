@@ -4,6 +4,9 @@ import { startWebhookServer } from '../webhook/server.js';
 import { getTask, createTask, updateTask } from '../task/store.js';
 import { startTaskContainer } from '../worker/container.js';
 import { getConfig } from '../config.js';
+import { debug, info, warn, createLogger } from '../utils/logger.js';
+
+const logger = createLogger('cli');
 
 export const webhookCommand = new Command('webhook')
   .description('Start webhook server to receive GitHub events')
@@ -12,6 +15,7 @@ export const webhookCommand = new Command('webhook')
   .option('--auto-fix-ci', 'Auto-create follow-up tasks when CI fails')
   .option('--auto-fix-reviews', 'Auto-create follow-up tasks from bot review comments (e.g., Greptile)')
   .option('--review-bots <bots>', 'Comma-separated bot usernames to respond to', 'greptile[bot],greptile-apps[bot]')
+  .option('-v, --verbose', 'Enable verbose output')
   .action(async (options) => {
     const config = getConfig();
     const port = parseInt(options.port, 10);
@@ -19,6 +23,16 @@ export const webhookCommand = new Command('webhook')
     const autoFixCi = options.autoFixCi;
     const autoFixReviews = options.autoFixReviews;
     const reviewBots = options.reviewBots?.split(',').map((b: string) => b.trim()) || ['greptile[bot]'];
+    
+    if (options.verbose) {
+      debug('cli', 'Webhook server options', {
+        port,
+        secret: secret ? '[configured]' : '[not configured]',
+        autoFixCi,
+        autoFixReviews,
+        reviewBots,
+      });
+    }
     
     console.log(chalk.bold('Starting webhook server...\n'));
     
@@ -50,19 +64,23 @@ export const webhookCommand = new Command('webhook')
       reviewBotUsers: reviewBots,
       githubToken: config.githubToken,
       onPrMerged: (prUrl, taskId) => {
+        info('cli', 'PR merged', { taskId, prUrl });
         console.log(chalk.green('✓ PR Merged:'), prUrl);
         console.log(chalk.dim(`  Task: ${taskId}`));
       },
       onPrClosed: (prUrl, taskId) => {
+        info('cli', 'PR closed', { taskId, prUrl });
         console.log(chalk.yellow('✗ PR Closed:'), prUrl);
         console.log(chalk.dim(`  Task: ${taskId}`));
       },
       onPrComment: (prUrl, taskId, comment, author) => {
+        info('cli', 'PR comment received', { taskId, prUrl, author });
         console.log(chalk.blue('💬 PR Comment:'), prUrl);
         console.log(chalk.dim(`  Task: ${taskId} | Author: ${author}`));
         console.log(chalk.dim(`  "${comment.slice(0, 100)}${comment.length > 100 ? '...' : ''}"`));
       },
       onBotReview: async (prUrl, taskId, reviewer, body, comments) => {
+        info('cli', 'Bot review received', { taskId, prUrl, reviewer });
         console.log(chalk.magenta('🤖 Bot Review:'), prUrl);
         console.log(chalk.dim(`  Task: ${taskId} | Reviewer: ${reviewer}`));
         if (body) {
@@ -77,8 +95,7 @@ export const webhookCommand = new Command('webhook')
           const parentTask = getTask(taskId);
           if (!parentTask) return;
           
-          // Don't create duplicate fix tasks (allow one per review cycle)
-          // We could track multiple, but for now just check if one exists recently
+          // Don't create duplicate fix tasks
           if (parentTask.reviewFixTaskId) {
             const existingFix = getTask(parentTask.reviewFixTaskId);
             if (existingFix && (existingFix.status === 'running' || existingFix.status === 'pending')) {
@@ -106,7 +123,7 @@ export const webhookCommand = new Command('webhook')
           const fixTask = createTask({
             repo: parentTask.repo,
             prompt: fixPrompt,
-            branch: parentTask.branch,  // Same branch
+            branch: parentTask.branch,
             baseBranch: parentTask.baseBranch,
           });
           
@@ -117,6 +134,11 @@ export const webhookCommand = new Command('webhook')
             reviewFixedAt: new Date().toISOString(),
           } as any);
           
+          info('cli', 'Created review fix task', {
+            parentTaskId: taskId,
+            fixTaskId: fixTask.id,
+          });
+          
           console.log(chalk.blue('▶ Created review fix task:'), fixTask.id);
           
           // Start the fix task
@@ -125,7 +147,7 @@ export const webhookCommand = new Command('webhook')
               task: fixTask,
               githubToken: config.githubToken,
               model: config.model,
-              verbose: false,
+              verbose: options.verbose,
             });
             console.log(chalk.green('✓ Review fix task started'));
           } catch (error) {
@@ -134,6 +156,7 @@ export const webhookCommand = new Command('webhook')
         }
       },
       onCiFailed: async (prUrl, taskId, checkName, logs) => {
+        warn('cli', 'CI failed', { taskId, prUrl, checkName });
         console.log(chalk.red('✗ CI Failed:'), prUrl);
         console.log(chalk.dim(`  Task: ${taskId}`));
         console.log(chalk.dim(`  Check: ${checkName}`));
@@ -160,13 +183,18 @@ Fix the failing tests or build issues and commit the changes.`;
           const fixTask = createTask({
             repo: parentTask.repo,
             prompt: fixPrompt,
-            branch: parentTask.branch,  // Same branch
+            branch: parentTask.branch,
             baseBranch: parentTask.baseBranch,
           });
           
           // Link tasks
           updateTask(fixTask.id, { parentTaskId: taskId });
           updateTask(taskId, { ciFixTaskId: fixTask.id } as any);
+          
+          info('cli', 'Created CI fix task', {
+            parentTaskId: taskId,
+            fixTaskId: fixTask.id,
+          });
           
           console.log(chalk.blue('▶ Created fix task:'), fixTask.id);
           
@@ -176,7 +204,7 @@ Fix the failing tests or build issues and commit the changes.`;
               task: fixTask,
               githubToken: config.githubToken,
               model: config.model,
-              verbose: false,
+              verbose: options.verbose,
             });
             console.log(chalk.green('✓ Fix task started'));
           } catch (error) {
