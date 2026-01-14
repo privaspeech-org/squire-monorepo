@@ -1,7 +1,8 @@
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
 import { StewardConfig } from '../config.js';
 import { Signal } from './collect.js';
 import { getActiveTasks, getRecentTasks, getFailedTasks, syncWithSquire } from '../state.js';
-import OpenAI from 'openai';
 
 export interface Task {
   repo: string;
@@ -17,8 +18,6 @@ export async function analyzeTasks(
 ): Promise<Task[]> {
   // Sync state with Squire before analyzing
   syncWithSquire();
-  
-  const openai = new OpenAI();
   
   // Gather context
   const signalSummary = signals.map(s => 
@@ -73,13 +72,12 @@ Respond with a JSON array:
 
 If no NEW tasks are needed, respond with an empty array: []`;
 
-  const response = await openai.chat.completions.create({
-    model: config.llm.model,
+  const { text } = await generateText({
+    model: openai(config.llm.model) as any,
     messages: [{ role: 'user', content: prompt }],
-    response_format: { type: 'json_object' },
   });
 
-  const content = response.choices[0]?.message?.content || '[]';
+  const content = text || '[]';
   
   try {
     const parsed = JSON.parse(content);
