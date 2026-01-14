@@ -1,0 +1,26 @@
+{
+  "name": "steward-cli",
+  "version": "0.1.0",
+  "description": "Task orchestrator that turns goals into coding tasks for Squire",
+  "type": "module",
+  "bin": {
+    "steward": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js"
+  },
+  "keywords": ["automation", "coding-agent", "orchestrator", "squire"],
+  "author": "Carl Ulsøe",
+  "license": "MIT",
+  "dependencies": {
+    "yaml": "^2.3.4",
+    "commander": "^12.0.0",
+    "openai": "^4.20.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.3.0"
+  }
+}
