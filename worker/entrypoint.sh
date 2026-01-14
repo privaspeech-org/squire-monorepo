@@ -1,10 +1,10 @@
 #!/bin/bash
 set -e
 
-# Jules Worker Entrypoint
+# Squire Worker Entrypoint
 # Executes a coding task using OpenCode
 
-echo "=== Jules Worker Starting ==="
+echo "=== Squire Worker Starting ==="
 echo "Task ID: ${TASK_ID}"
 echo "Repo: ${REPO}"
 echo "Branch: ${BRANCH}"
@@ -23,8 +23,8 @@ update_task() {
 }
 
 # Configure git
-git config --global user.name "Jules Bot"
-git config --global user.email "jules@localhost"
+git config --global user.name "Squire Bot"
+git config --global user.email "squire@localhost"
 git config --global init.defaultBranch main
 
 # Configure git to use GITHUB_TOKEN for authentication
@@ -133,17 +133,17 @@ if [ -n "$EXISTING_PR" ]; then
 ${PROMPT}
 
 ---
-*Follow-up by Jules (task: ${TASK_ID})*" 2>/dev/null || true
+*Follow-up by Squire (task: ${TASK_ID})*" 2>/dev/null || true
 else
     # Create new PR
     echo "=== Creating Pull Request ==="
-    PR_TITLE="[Jules] ${PROMPT:0:100}"
+    PR_TITLE="[Squire] ${PROMPT:0:100}"
     PR_BODY="## Task
 
 ${PROMPT}
 
 ---
-*Automated by Jules (task: ${TASK_ID})*"
+*Automated by Squire (task: ${TASK_ID})*"
 
     PR_URL=$(gh pr create --title "$PR_TITLE" --body "$PR_BODY" --base "${BASE_BRANCH}" --head "${BRANCH}" 2>&1) || PR_URL=$(gh pr view --json url -q .url 2>/dev/null || echo "PR creation failed")
     PR_NUMBER=$(echo "$PR_URL" | grep -oE '/pull/[0-9]+' | grep -oE '[0-9]+' || echo "")
@@ -158,4 +158,4 @@ else
     update_task "{\"status\": \"completed\", \"prUrl\": \"${PR_URL}\", \"completedAt\": \"$(date -Iseconds)\"}"
 fi
 
-echo "=== Jules Worker Complete ==="
+echo "=== Squire Worker Complete ==="

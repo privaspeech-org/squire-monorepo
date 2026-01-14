@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { listTasks, deleteTask } from '../task/store.js';
-import { removeContainer, listJulesContainers } from '../worker/container.js';
+import { removeContainer, listSquireContainers } from '../worker/container.js';
 
 export const cleanCommand = new Command('clean')
   .description('Clean up completed/failed tasks and containers')
@@ -50,7 +50,7 @@ export const cleanCommand = new Command('clean')
     // Show container cleanup option if not already doing it
     if (!options.containers && !options.dryRun) {
       try {
-        const containers = await listJulesContainers();
+        const containers = await listSquireContainers();
         const stoppedContainers = containers.filter(c => c.State !== 'running');
         if (stoppedContainers.length > 0) {
           console.log(chalk.dim(`\nTip: ${stoppedContainers.length} stopped container(s) remain.`));

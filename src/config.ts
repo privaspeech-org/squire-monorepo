@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 
-export interface JulesConfig {
+export interface SquireConfig {
   githubToken?: string;
   model?: string;
   tasksDir?: string;
@@ -16,15 +16,15 @@ const CONFIG_PATHS = [
   join(homedir(), '.config', 'squire', 'config.json'),
 ];
 
-let cachedConfig: JulesConfig | null = null;
+let cachedConfig: SquireConfig | null = null;
 
-export function getConfig(): JulesConfig {
+export function getConfig(): SquireConfig {
   if (cachedConfig) {
     return cachedConfig;
   }
   
   // Start with environment variables
-  const config: JulesConfig = {
+  const config: SquireConfig = {
     githubToken: process.env.GITHUB_TOKEN || process.env.GH_TOKEN,
     model: process.env.SQUIRE_MODEL || 'opencode/glm-4.7-free',
     tasksDir: process.env.SQUIRE_TASKS_DIR,

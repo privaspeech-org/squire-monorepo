@@ -134,7 +134,7 @@ export async function removeContainer(containerId: string): Promise<void> {
 /**
  * List all squire containers.
  */
-export async function listJulesContainers(): Promise<Docker.ContainerInfo[]> {
+export async function listSquireContainers(): Promise<Docker.ContainerInfo[]> {
   const containers = await docker.listContainers({
     all: true,
     filters: {
