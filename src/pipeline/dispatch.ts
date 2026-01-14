@@ -1,5 +1,6 @@
 import { StewardConfig } from '../config.js';
 import { Task } from './analyze.js';
+import { recordTask, getActiveTasks } from '../state.js';
 import { execSync } from 'child_process';
 
 export interface DispatchedTask extends Task {
@@ -18,10 +19,12 @@ export async function dispatchTasks(
     throw new Error('Squire config not found');
   }
 
-  // Respect concurrency limits
+  // Respect concurrency limits (check both Squire and our state)
   const maxConcurrent = squireConfig.max_concurrent || 3;
-  const activeTasks = getActiveSquireTasks();
-  const available = maxConcurrent - activeTasks;
+  const activeTasks = getActiveTasks().length;
+  const squireActive = getSquireRunningCount();
+  const currentActive = Math.max(activeTasks, squireActive);
+  const available = maxConcurrent - currentActive;
 
   if (available <= 0) {
     console.log(`   Max concurrent tasks (${maxConcurrent}) reached, skipping dispatch`);
@@ -36,16 +39,28 @@ export async function dispatchTasks(
       const model = squireConfig.model;
       
       // Escape the prompt for shell
-      const escapedPrompt = task.prompt.replace(/"/g, '\\"').replace(/\n/g, '\\n');
+      const escapedPrompt = task.prompt
+        .replace(/\\/g, '\\\\')
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, ' ')
+        .replace(/\$/g, '\\$');
       
       const output = execSync(
         `squire new ${repo} "${escapedPrompt}" --model ${model}`,
-        { encoding: 'utf-8' }
+        { encoding: 'utf-8', timeout: 30000 }
       );
       
       // Extract task ID from output
       const match = output.match(/Created task (\w+)/);
-      const taskId = match ? match[1] : 'unknown';
+      const taskId = match ? match[1] : `unknown-${Date.now()}`;
+      
+      // Record to state
+      recordTask({
+        taskId,
+        repo,
+        prompt: task.prompt,
+        status: 'dispatched',
+      });
       
       dispatched.push({
         ...task,
@@ -67,7 +82,7 @@ export async function dispatchTasks(
   return dispatched;
 }
 
-function getActiveSquireTasks(): number {
+function getSquireRunningCount(): number {
   try {
     const output = execSync('squire ps', { encoding: 'utf-8' });
     const lines = output.trim().split('\n').filter(l => l.includes('RUNNING'));
