@@ -1,26 +1,29 @@
-# Steward Configuration
-# Orchestrates tasks for the squire-monorepo
-
 goals:
   - path: ./goals.md
 
 signals:
-  # File-based signals for manual task requests
+  github:
+    repos:
+      - privaspeech-org/squire-monorepo
+    watch:
+      - failed_ci      # High priority - fix broken builds
+      - issues         # Bug reports and feature requests
+      - open_prs       # PRs that need work (failing checks)
+
   files:
-    - ./signals/tasks.md
+    - ./signals/tasks.md  # Manual task queue
 
 execution:
   backend: squire
   squire:
     default_repo: privaspeech-org/squire-monorepo
     model: opencode/glm-4.7-free
-    max_concurrent: 2
+    max_concurrent: 2  # Don't overwhelm with PRs
 
-# LLM for task analysis (uses Vercel AI Gateway)
 llm:
-  model: openai/gpt-4o-mini
+  model: openai/gpt-4o-mini  # Cheap and fast for task analysis
 
 schedule:
-  interval: 1h
-  quiet_hours: "22:00-08:00"
+  interval: 30m        # Check frequently
+  quiet_hours: "00:00-06:00"
   timezone: Europe/Copenhagen
