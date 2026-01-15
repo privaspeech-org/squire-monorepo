@@ -21,7 +21,8 @@ export async function analyzeTasks(
   function formatSignal(s: Signal): string {
     if (s.type === 'greptile_review' && s.data.parsed) {
       const p = s.data.parsed as { file: string; line: number; description: string };
-      return `[github/greptile_review] PR#${s.data.prNumber}: ${p.file}:${p.line} - ${p.description}`;
+      const confidence = s.greptile_confidence !== undefined ? ` [confidence: ${s.greptile_confidence}/5]` : '';
+      return `[github/greptile_review] PR#${s.data.prNumber}: ${p.file}:${p.line} - ${p.description}${confidence}`;
     }
     return `[${s.source}/${s.type}] ${JSON.stringify(s.data)}`;
   }

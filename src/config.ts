@@ -22,6 +22,10 @@ export interface StewardConfig {
       max_concurrent: number;
     };
   };
+  auto_merge?: {
+    enabled: boolean;
+    min_confidence: number;
+  };
   notify?: {
     telegram?: { chat_id: string };
     slack?: { webhook: string };

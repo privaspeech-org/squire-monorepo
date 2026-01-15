@@ -1,5 +1,5 @@
 import { StewardConfig, loadGoals } from '../config.js';
-import { collectSignals, Signal } from './collect.js';
+import { collectSignals, Signal, autoMergePRs } from './collect.js';
 import { analyzeTasks, Task } from './analyze.js';
 import { dispatchTasks } from './dispatch.js';
 import { monitorTasks } from './monitor.js';
@@ -24,6 +24,25 @@ export async function runPipeline(
   if (signals.length === 0) {
     console.log('   No signals to process. Done.');
     return;
+  }
+
+  // Auto-merge step for high-confidence Greptile reviews
+  if (config.auto_merge?.enabled) {
+    console.log('🔀 Checking for auto-merge candidates...');
+    const minConfidence = config.auto_merge.min_confidence || 5;
+    const { success, failed, details } = autoMergePRs(signals, minConfidence);
+    
+    if (details.length > 0) {
+      console.log(`   Auto-merge results: ${success} merged, ${failed} failed`);
+      if (options.verbose) {
+        for (const detail of details) {
+          console.log(`     - PR #${detail.prNumber} in ${detail.repo} (confidence: ${detail.confidence}/5): ${detail.merged ? '✓ merged' : '✗ failed'}`);
+        }
+      }
+    } else {
+      console.log('   No auto-merge candidates found');
+    }
+    console.log('');
   }
 
   // 2. ANALYZE - Generate tasks from signals + goals

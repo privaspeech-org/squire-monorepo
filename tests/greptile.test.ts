@@ -46,4 +46,53 @@ describe('parseGreptileBody', () => {
     assert.strictEqual(result?.line, 15);
     assert.strictEqual(result?.description, 'Missing accessibility label');
   });
+
+  it('should parse confidence score 4/5', () => {
+    const body = 'File: src/utils.ts\nLine: 42\nIssue: TypeScript error - variable might be undefined\nConfidence: 4/5';
+    const result = parseGreptileBody(body);
+    assert.strictEqual(result?.file, 'src/utils.ts');
+    assert.strictEqual(result?.line, 42);
+    assert.strictEqual(result?.description, 'TypeScript error - variable might be undefined');
+    assert.strictEqual(result?.confidence, 4);
+  });
+
+  it('should parse confidence score 5/5', () => {
+    const body = 'File: src/utils.ts\nLine: 42\nIssue: Critical bug fix\nConfidence: 5/5';
+    const result = parseGreptileBody(body);
+    assert.strictEqual(result?.confidence, 5);
+  });
+
+  it('should parse confidence score 2/5', () => {
+    const body = 'File: src/utils.ts\nLine: 42\nIssue: Minor improvement suggestion\nConfidence: 2/5';
+    const result = parseGreptileBody(body);
+    assert.strictEqual(result?.confidence, 2);
+  });
+
+  it('should parse confidence score with different formats', () => {
+    const body1 = 'File: src/utils.ts\nLine: 42\nIssue: Test issue\nConfidence: 3/5';
+    const body2 = 'File: src/utils.ts\nLine: 42\nIssue: Test issue\nConfidence: 3 / 5';
+    const body3 = 'File: src/utils.ts\nLine: 42\nIssue: Test issue\nconfidence: 3/5';
+
+    const result1 = parseGreptileBody(body1);
+    const result2 = parseGreptileBody(body2);
+    const result3 = parseGreptileBody(body3);
+
+    assert.strictEqual(result1?.confidence, 3);
+    assert.strictEqual(result2?.confidence, 3);
+    assert.strictEqual(result3?.confidence, 3);
+  });
+
+  it('should not set confidence when not present', () => {
+    const body = 'File: src/utils.ts\nLine: 42\nIssue: Some issue without confidence';
+    const result = parseGreptileBody(body);
+    assert.strictEqual(result?.confidence, undefined);
+  });
+
+  it('should handle invalid confidence scores gracefully', () => {
+    const body = 'File: src/utils.ts\nLine: 42\nIssue: Issue with invalid confidence\nConfidence: invalid/5';
+    const result = parseGreptileBody(body);
+    assert.strictEqual(result?.confidence, undefined);
+    assert.ok(result !== null);
+    assert.strictEqual(result?.file, 'src/utils.ts');
+  });
 });

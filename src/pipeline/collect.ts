@@ -7,6 +7,7 @@ export interface Signal {
   type: string;
   data: Record<string, unknown>;
   timestamp: Date;
+  greptile_confidence?: number;
 }
 
 export async function collectSignals(config: StewardConfig): Promise<Signal[]> {
@@ -112,21 +113,33 @@ export interface GreptileComment {
   file: string;
   line: number;
   description: string;
+  confidence?: number;
 }
 
 export function parseGreptileBody(body: string): GreptileComment | null {
   const fileMatch = body.match(/File:\s*([^\s\n]+)/);
   const lineMatch = body.match(/Line:\s*(\d+)/);
   const descMatch = body.match(/Issue:\s*([^\n]+)/);
+  const confidenceMatch = body.match(/Confidence:\s*(\d+)\s*\/\s*(\d+)/i);
 
   if (!fileMatch || !descMatch) {
     return null;
+  }
+
+  let confidence: number | undefined;
+  if (confidenceMatch) {
+    const numerator = parseInt(confidenceMatch[1], 10);
+    const denominator = parseInt(confidenceMatch[2], 10);
+    if (denominator > 0) {
+      confidence = Math.round((numerator / denominator) * 5) || numerator;
+    }
   }
 
   return {
     file: fileMatch[1],
     line: lineMatch ? parseInt(lineMatch[1], 10) : 0,
     description: descMatch[1].trim(),
+    confidence,
   };
 }
 
@@ -160,6 +173,7 @@ function collectGreptileReviews(repo: string): Signal[] {
       return {
         source: 'github' as const,
         type: 'greptile_review',
+        greptile_confidence: parsed?.confidence,
         data: {
           repo,
           prNumber: comment.prNumber,
@@ -167,6 +181,7 @@ function collectGreptileReviews(repo: string): Signal[] {
           author: comment.user?.login,
           body: comment.body,
           parsed: parsed || null,
+          confidence: parsed?.confidence,
         },
         timestamp: new Date(comment.created_at),
       };
@@ -174,4 +189,75 @@ function collectGreptileReviews(repo: string): Signal[] {
   } catch {
     return [];
   }
+}
+
+export function canAutoMerge(signal: Signal, minConfidence: number = 5): boolean {
+  if (signal.type !== 'greptile_review') {
+    return false;
+  }
+
+  const confidence = signal.greptile_confidence;
+  if (confidence === undefined || confidence === null) {
+    return false;
+  }
+
+  return confidence >= minConfidence;
+}
+
+export function filterAutoMergeCandidates(
+  signals: Signal[], 
+  minConfidence: number = 5
+): Signal[] {
+  return signals.filter(signal => canAutoMerge(signal, minConfidence));
+}
+
+export function mergePR(repo: string, prNumber: number): boolean {
+  try {
+    execSync(
+      `gh pr merge --repo ${repo} ${prNumber} --admin --merge`,
+      { encoding: 'utf-8' }
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function autoMergePRs(
+  signals: Signal[], 
+  minConfidence: number = 5
+): { success: number; failed: number; details: Array<{ repo: string; prNumber: number; confidence: number; merged: boolean }> } {
+  const candidates = filterAutoMergeCandidates(signals, minConfidence);
+  const details: Array<{ repo: string; prNumber: number; confidence: number; merged: boolean }> = [];
+  let success = 0;
+  let failed = 0;
+
+  const processedPRs = new Set<string>();
+
+  for (const signal of candidates) {
+    const data = signal.data as { repo: string; prNumber: number; confidence?: number };
+    const key = `${data.repo}-${data.prNumber}`;
+    
+    // Skip if we've already processed this specific PR
+    if (processedPRs.has(key)) {
+      continue;
+    }
+
+    const merged = mergePR(data.repo, data.prNumber);
+    if (merged) {
+      success++;
+    } else {
+      failed++;
+    }
+
+    processedPRs.add(key);
+    details.push({
+      repo: data.repo,
+      prNumber: data.prNumber,
+      confidence: signal.greptile_confidence || 0,
+      merged,
+    });
+  }
+
+  return { success, failed, details };
 }
