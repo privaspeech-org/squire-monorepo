@@ -83,8 +83,13 @@ If no NEW tasks are needed, respond with an empty array: []`;
 
   const content = result.text || '[]';
   
+  let jsonContent = content.trim();
+  if (jsonContent.startsWith('```')) {
+    jsonContent = jsonContent.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+  }
+  
   try {
-    const parsed = JSON.parse(content);
+    const parsed = JSON.parse(jsonContent);
     return Array.isArray(parsed) ? parsed : parsed.tasks || [];
   } catch {
     console.error('Failed to parse LLM response:', content);
