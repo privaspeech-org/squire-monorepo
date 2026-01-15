@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
-import { parseGreptileBody } from '../dist/pipeline/collect.js';
+import { parseGreptileBody, parseGreptileConfidence } from '../dist/pipeline/collect.js';
 
 describe('parseGreptileBody', () => {
   it('should parse a valid Greptile comment with file, line, and issue', () => {
@@ -48,7 +48,7 @@ describe('parseGreptileBody', () => {
   });
 
   it('should parse confidence score 4/5', () => {
-    const body = 'File: src/utils.ts\nLine: 42\nIssue: TypeScript error - variable might be undefined\nConfidence: 4/5';
+    const body = 'File: src/utils.ts\nLine: 42\nIssue: TypeScript error - variable might be undefined\nConfidence Score: 4/5';
     const result = parseGreptileBody(body);
     assert.strictEqual(result?.file, 'src/utils.ts');
     assert.strictEqual(result?.line, 42);
@@ -57,21 +57,21 @@ describe('parseGreptileBody', () => {
   });
 
   it('should parse confidence score 5/5', () => {
-    const body = 'File: src/utils.ts\nLine: 42\nIssue: Critical bug fix\nConfidence: 5/5';
+    const body = 'File: src/utils.ts\nLine: 42\nIssue: Critical bug fix\nConfidence Score: 5/5';
     const result = parseGreptileBody(body);
     assert.strictEqual(result?.confidence, 5);
   });
 
   it('should parse confidence score 2/5', () => {
-    const body = 'File: src/utils.ts\nLine: 42\nIssue: Minor improvement suggestion\nConfidence: 2/5';
+    const body = 'File: src/utils.ts\nLine: 42\nIssue: Minor improvement suggestion\nConfidence Score: 2/5';
     const result = parseGreptileBody(body);
     assert.strictEqual(result?.confidence, 2);
   });
 
   it('should parse confidence score with different formats', () => {
-    const body1 = 'File: src/utils.ts\nLine: 42\nIssue: Test issue\nConfidence: 3/5';
-    const body2 = 'File: src/utils.ts\nLine: 42\nIssue: Test issue\nConfidence: 3 / 5';
-    const body3 = 'File: src/utils.ts\nLine: 42\nIssue: Test issue\nconfidence: 3/5';
+    const body1 = 'File: src/utils.ts\nLine: 42\nIssue: Test issue\nConfidence Score: 3/5';
+    const body2 = 'File: src/utils.ts\nLine: 42\nIssue: Test issue\nConfidence Score: 3 / 5';
+    const body3 = 'File: src/utils.ts\nLine: 42\nIssue: Test issue\nconfidence score: 3/5';
 
     const result1 = parseGreptileBody(body1);
     const result2 = parseGreptileBody(body2);
@@ -89,10 +89,40 @@ describe('parseGreptileBody', () => {
   });
 
   it('should handle invalid confidence scores gracefully', () => {
-    const body = 'File: src/utils.ts\nLine: 42\nIssue: Issue with invalid confidence\nConfidence: invalid/5';
+    const body = 'File: src/utils.ts\nLine: 42\nIssue: Issue with invalid confidence\nConfidence Score: invalid/5';
     const result = parseGreptileBody(body);
     assert.strictEqual(result?.confidence, undefined);
     assert.ok(result !== null);
     assert.strictEqual(result?.file, 'src/utils.ts');
+  });
+
+  it('should parse confidence score in HTML h3 format', () => {
+    const body = '<h3>Confidence Score: 4/5</h3>\nFile: src/utils.ts\nLine: 42\nIssue: TypeScript error';
+    const result = parseGreptileBody(body);
+    assert.strictEqual(result?.confidence, 4);
+  });
+});
+
+describe('parseGreptileConfidence', () => {
+  it('should parse confidence score from PR body', () => {
+    const body = 'Some PR description\n<h3>Confidence Score: 3/5</h3>\nMore details';
+    const result = parseGreptileConfidence(body);
+    assert.strictEqual(result, 3);
+  });
+
+  it('should return undefined when no confidence score in PR body', () => {
+    const body = 'Some PR description without confidence score';
+    const result = parseGreptileConfidence(body);
+    assert.strictEqual(result, undefined);
+  });
+
+  it('should parse confidence score with different formats', () => {
+    const body1 = 'Confidence Score: 4/5';
+    const body2 = 'confidence score: 2/5';
+    const body3 = 'PR body with Confidence Score: 5/5 here';
+
+    assert.strictEqual(parseGreptileConfidence(body1), 4);
+    assert.strictEqual(parseGreptileConfidence(body2), 2);
+    assert.strictEqual(parseGreptileConfidence(body3), 5);
   });
 });

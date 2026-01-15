@@ -120,7 +120,7 @@ export function parseGreptileBody(body: string): GreptileComment | null {
   const fileMatch = body.match(/File:\s*([^\s\n]+)/);
   const lineMatch = body.match(/Line:\s*(\d+)/);
   const descMatch = body.match(/Issue:\s*([^\n]+)/);
-  const confidenceMatch = body.match(/Confidence:\s*(\d+)\s*\/\s*(\d+)/i);
+  const confidenceMatch = body.match(/Confidence Score:\s*(\d+)\s*\/\s*(\d+)/i);
 
   if (!fileMatch || !descMatch) {
     return null;
@@ -168,7 +168,36 @@ function collectGreptileReviews(repo: string): Signal[] {
       comment.user?.login === 'greptile-apps'
     );
 
-    return greptileComments.map((comment: any) => {
+    const prSignals: Signal[] = [];
+
+    for (const pr of prs) {
+      try {
+        const prViewOutput = execSync(
+          `gh pr view ${pr.number} --repo ${repo} --json body`,
+          { encoding: 'utf-8' }
+        );
+        const prView = JSON.parse(prViewOutput);
+        const confidence = parseGreptileConfidence(prView.body);
+
+        if (confidence !== undefined) {
+          prSignals.push({
+            source: 'github' as const,
+            type: 'greptile_review',
+            greptile_confidence: confidence,
+            data: {
+              repo,
+              prNumber: pr.number,
+              body: prView.body,
+              confidence,
+            },
+            timestamp: new Date(),
+          });
+        }
+      } catch {
+      }
+    }
+
+    const commentSignals = greptileComments.map((comment: any) => {
       const parsed = parseGreptileBody(comment.body);
       return {
         source: 'github' as const,
@@ -186,9 +215,23 @@ function collectGreptileReviews(repo: string): Signal[] {
         timestamp: new Date(comment.created_at),
       };
     });
+
+    return [...prSignals, ...commentSignals];
   } catch {
     return [];
   }
+}
+
+export function parseGreptileConfidence(body: string): number | undefined {
+  const confidenceMatch = body.match(/Confidence Score:\s*(\d+)\s*\/\s*(\d+)/i);
+  if (confidenceMatch) {
+    const numerator = parseInt(confidenceMatch[1], 10);
+    const denominator = parseInt(confidenceMatch[2], 10);
+    if (denominator > 0) {
+      return Math.round((numerator / denominator) * 5) || numerator;
+    }
+  }
+  return undefined;
 }
 
 export function canAutoMerge(signal: Signal, minConfidence: number = 5): boolean {
