@@ -1,5 +1,4 @@
 import { generateText } from 'ai';
-import { openai } from '@ai-sdk/openai';
 import { StewardConfig } from '../config.js';
 import { Signal } from './collect.js';
 import { getActiveTasks, getRecentTasks, getFailedTasks, syncWithSquire } from '../state.js';
@@ -77,12 +76,12 @@ Respond with a JSON array:
 
 If no NEW tasks are needed, respond with an empty array: []`;
 
-  const { text } = await generateText({
-    model: openai(config.llm.model) as any,
+  const result = await generateText({
+    model: config.llm.model,
     messages: [{ role: 'user', content: prompt }],
   });
 
-  const content = text || '[]';
+  const content = result.text || '[]';
   
   try {
     const parsed = JSON.parse(content);

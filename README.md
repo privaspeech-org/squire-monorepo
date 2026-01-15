@@ -81,12 +81,12 @@ signals:
       - open_prs
       - failed_ci
       - issues
-  
+   
   posthog:
     project: privaspeech
     events:
       - transcription_error
-  
+   
   files:
     - ./signals/tasks.md
 
@@ -103,10 +103,9 @@ notify:
   telegram:
     chat_id: "123456"
 
-# LLM for task generation (narrow use)
+# LLM for task generation (narrow use) - uses Vercel AI Gateway
 llm:
-  provider: openai
-  model: gpt-4o-mini
+  model: openai/gpt-4o-mini
 
 # Behavior
 schedule:
@@ -114,6 +113,14 @@ schedule:
   quiet_hours: "22:00-08:00"
   timezone: Europe/Copenhagen
 ```
+
+### Environment Variables
+
+```bash
+export AI_GATEWAY_API_KEY=your_key
+```
+
+The AI Gateway uses the `AI_GATEWAY_API_KEY` environment variable for authentication. Model format should be `provider/model-name` (e.g., `openai/gpt-4o-mini`, `anthropic/claude-sonnet-4`).
 
 ## Commands
 

@@ -31,7 +31,6 @@ export interface StewardConfig {
     slack?: { webhook: string };
   };
   llm: {
-    provider: 'openai' | 'anthropic' | 'opencode';
     model: string;
   };
   schedule: {
