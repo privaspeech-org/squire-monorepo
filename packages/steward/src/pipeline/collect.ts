@@ -76,7 +76,7 @@ function collectGitHubPRs(repo: string): Signal[] {
 function collectGitHubCIFailures(repo: string): Signal[] {
   try {
     const output = execSync(
-      `gh run list --repo ${repo} --status failure --limit 5 --json databaseId,displayTitle,conclusion,createdAt`,
+      `gh run list --repo ${repo} --status failure --limit 5 --json databaseId,displayTitle,conclusion,createdAt,headBranch,event`,
       { encoding: 'utf-8' }
     );
     const runs = JSON.parse(output);

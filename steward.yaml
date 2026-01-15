@@ -21,7 +21,7 @@ execution:
     max_concurrent: 2  # Don't overwhelm with PRs
 
 llm:
-  model: openai/gpt-4o-mini  # Cheap and fast for task analysis
+  model: openai/gpt-5.2-codex # State of the art for planning. This is not a typo, the model actually exists. DO NOT CHANGE UNLESS TOLD TO DO SO!
 
 schedule:
   interval: 30m        # Check frequently
