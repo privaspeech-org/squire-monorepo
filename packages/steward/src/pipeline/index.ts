@@ -58,7 +58,7 @@ export async function runPipeline(
 
   // Show tasks
   for (const task of tasks) {
-    console.log(`   - [${task.priority}] ${task.repo}: ${task.prompt.slice(0, 60)}...`);
+    console.log(`   - [${task.priority}] ${task.prompt.slice(0, 65)}...`);
   }
   console.log('');
 

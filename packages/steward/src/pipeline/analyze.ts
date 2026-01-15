@@ -4,7 +4,6 @@ import { Signal } from './collect.js';
 import { getActiveTasks, getRecentTasks, getFailedTasks, syncWithSquire } from '../state.js';
 
 export interface Task {
-  repo: string;
   prompt: string;
   priority: 'high' | 'medium' | 'low';
   depends_on: string[];
@@ -71,8 +70,8 @@ Rules:
 4. Focus on CI failures (high priority), actionable issues, progress toward goals
 5. Skip tasks for PRs that just need human review
 
-Respond with a JSON array:
-[{ "repo": "owner/repo", "prompt": "detailed task description", "priority": "high|medium|low", "depends_on": [] }]
+Respond with a JSON array of tasks (repo is configured separately):
+[{ "prompt": "detailed task description", "priority": "high|medium|low", "depends_on": [] }]
 
 If no NEW tasks are needed, respond with an empty array: []`;
 

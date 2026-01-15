@@ -9,6 +9,7 @@ import {
 
 export interface DispatchedTask extends Task {
   taskId: string;
+  repo: string;
   status: 'dispatched' | 'failed';
 }
 
@@ -44,7 +45,8 @@ export async function dispatchTasks(
 
   for (const task of toDispatch) {
     try {
-      const repo = task.repo || squireConfig.default_repo;
+      // Always use the configured default_repo
+      const repo = squireConfig.default_repo;
       const model = squireConfig.model;
 
       // Create task using @squire/core programmatic API
@@ -71,6 +73,7 @@ export async function dispatchTasks(
       dispatched.push({
         ...task,
         taskId: squireTask.id,
+        repo,
         status: 'dispatched',
       });
 
@@ -81,6 +84,7 @@ export async function dispatchTasks(
       dispatched.push({
         ...task,
         taskId: '',
+        repo: squireConfig.default_repo,
         status: 'failed',
       });
     }
