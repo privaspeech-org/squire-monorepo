@@ -43,6 +43,19 @@ Steward is a pipeline, not a chatbot. It uses LLMs narrowly for task generation,
 └─────────────────────────────────────────────────────────────┘
 ```
 
+## Features
+
+- **Multi-Source Signal Collection** - Gather signals from GitHub (PRs, issues, CI), PostHog events, webhooks, and custom files
+- **LLM-Powered Task Analysis** - Compare signals against goals to generate prioritized tasks with dependencies
+- **Squire Integration** - Dispatch tasks to Squire for automated code generation and PR creation
+- **Concurrency Control** - Configure maximum concurrent task execution to manage resources
+- **Multi-Channel Notifications** - Get updates via Telegram, Slack, or Discord with daily summaries and escalation alerts
+- **Flexible Scheduling** - Run on intervals with configurable quiet hours and timezone support
+- **Dry Run Mode** - Preview what tasks would be dispatched without executing them
+- **Watch Mode** - Continuous operation with automatic polling at configurable intervals
+- **Vercel AI Gateway** - LLM integration with support for multiple providers (OpenAI, Anthropic, etc.)
+- **Deterministic Pipeline** - Only uses LLM for task analysis; everything else is predictable and debuggable
+
 ## Quick Start
 
 ```bash
