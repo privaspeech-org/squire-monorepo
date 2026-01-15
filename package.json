@@ -1,27 +1,20 @@
 {
-  "name": "steward-cli",
-  "version": "0.1.0",
-  "description": "Task orchestrator that turns goals into coding tasks for Squire",
-  "type": "module",
-  "bin": {
-    "steward": "./dist/index.js"
-  },
+  "name": "squire-monorepo",
+  "private": true,
+  "description": "Squire monorepo - async coding agents and orchestration",
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
-    "start": "node dist/index.js",
-    "test": "node --experimental-test-snapshots --test tests/*.test.ts"
-  },
-  "keywords": ["automation", "coding-agent", "orchestrator", "squire"],
-  "author": "Carl Ulsøe",
-  "license": "MIT",
-  "dependencies": {
-    "ai": "^6.0.0",
-    "yaml": "^2.3.4",
-    "commander": "^12.0.0"
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "clean": "turbo run clean && rm -rf node_modules"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
-    "typescript": "^5.3.0"
+    "turbo": "^2.0.0",
+    "typescript": "^5.7.0"
+  },
+  "packageManager": "pnpm@9.0.0",
+  "engines": {
+    "node": ">=22"
   }
 }

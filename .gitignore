@@ -2,34 +2,33 @@
 node_modules/
 .pnpm-store/
 
-# Build outputs
+# Build output
 dist/
-build/
-.next/
-out/
 
-# Environment
-.env
-.env.local
-.env*.local
+# Task storage (local state)
+tasks/
 
-# Logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Turbo
+.turbo/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
 
 # OS
 .DS_Store
 Thumbs.db
 
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
+# Logs
+*.log
+npm-debug.log*
 
-# Package manager locks (optional - uncomment if desired)
-# package-lock.json
-# yarn.lock
-# pnpm-lock.yaml
+# Local state
+steward-state.json
+
+# Environment
+.env
+.env.local
+.env*.local
