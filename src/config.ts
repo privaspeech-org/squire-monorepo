@@ -1,55 +1,67 @@
-import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { homedir } from 'node:os';
+import { readFileSync, existsSync } from 'fs';
+import { parse } from 'yaml';
 
-export interface SquireConfig {
-  githubToken?: string;
-  model?: string;
-  tasksDir?: string;
-  workerImage?: string;
-  maxConcurrent?: number;  // Max parallel tasks (default: 5)
+export interface StewardConfig {
+  goals: Array<{ path?: string; text?: string }>;
+  signals: {
+    github?: {
+      repos: string[];
+      watch: ('open_prs' | 'failed_ci' | 'issues' | 'greptile_reviews')[];
+    };
+    posthog?: {
+      project: string;
+      events: string[];
+    };
+    files?: string[];
+  };
+  execution: {
+    backend: 'squire' | 'github-issues';
+    squire?: {
+      default_repo: string;
+      model: string;
+      max_concurrent: number;
+    };
+  };
+  auto_merge?: {
+    enabled: boolean;
+    min_confidence: number;
+  };
+  notify?: {
+    telegram?: { chat_id: string };
+    slack?: { webhook: string };
+  };
+  llm: {
+    model: string;
+  };
+  schedule: {
+    interval: string;
+    quiet_hours: string;
+    timezone: string;
+  };
 }
 
-const CONFIG_PATHS = [
-  join(process.cwd(), 'squire.config.json'),
-  join(homedir(), '.squire', 'config.json'),
-  join(homedir(), '.config', 'squire', 'config.json'),
-];
-
-let cachedConfig: SquireConfig | null = null;
-
-export function getConfig(): SquireConfig {
-  if (cachedConfig) {
-    return cachedConfig;
+export async function loadConfig(): Promise<StewardConfig> {
+  const configPath = './steward.yaml';
+  
+  if (!existsSync(configPath)) {
+    throw new Error('steward.yaml not found. Run `steward init` first.');
   }
   
-  // Start with environment variables
-  const config: SquireConfig = {
-    githubToken: process.env.GITHUB_TOKEN || process.env.GH_TOKEN,
-    model: process.env.SQUIRE_MODEL || 'opencode/glm-4.7-free',
-    tasksDir: process.env.SQUIRE_TASKS_DIR,
-    workerImage: process.env.SQUIRE_WORKER_IMAGE || 'squire-worker:latest',
-    maxConcurrent: process.env.SQUIRE_MAX_CONCURRENT ? parseInt(process.env.SQUIRE_MAX_CONCURRENT, 10) : 5,
-  };
+  const content = readFileSync(configPath, 'utf-8');
+  return parse(content) as StewardConfig;
+}
+
+export function loadGoals(config: StewardConfig): string {
+  const parts: string[] = [];
   
-  // Try to load config file
-  for (const configPath of CONFIG_PATHS) {
-    if (existsSync(configPath)) {
-      try {
-        const fileConfig = JSON.parse(readFileSync(configPath, 'utf-8'));
-        // File config can override env vars
-        if (fileConfig.githubToken) config.githubToken = fileConfig.githubToken;
-        if (fileConfig.model) config.model = fileConfig.model;
-        if (fileConfig.tasksDir) config.tasksDir = fileConfig.tasksDir;
-        if (fileConfig.workerImage) config.workerImage = fileConfig.workerImage;
-        if (fileConfig.maxConcurrent) config.maxConcurrent = fileConfig.maxConcurrent;
-        break;
-      } catch {
-        // Ignore invalid config files
-      }
+  for (const goal of config.goals) {
+    if (goal.path && existsSync(goal.path)) {
+      parts.push(readFileSync(goal.path, 'utf-8'));
+    }
+    if (goal.text) {
+      parts.push(goal.text);
     }
   }
   
-  cachedConfig = config;
-  return config;
+  return parts.join('\n\n');
 }

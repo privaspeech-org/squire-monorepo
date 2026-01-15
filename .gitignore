@@ -1,26 +1,35 @@
 # Dependencies
 node_modules/
+.pnpm-store/
 
-# Build output
+# Build outputs
 dist/
+build/
+.next/
+out/
 
-# Task storage (local state)
-tasks/
+# Environment
+.env
+.env.local
+.env*.local
 
-# Repo cache
-repos/
-
-# Config with secrets
-jules.config.json
-
-# Editor
-.vscode/
-.idea/
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Logs
-*.log
-npm-debug.log*
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Package manager locks (optional - uncomment if desired)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
