@@ -27,34 +27,40 @@ Goals + Signals → Steward → Tasks → Squire → PRs
 ### Squire (Individual Tasks)
 
 ```bash
-# Install
+# Install and build
 pnpm install
 pnpm build
 
 # Create and run a task
-pnpm --filter @squire/cli exec squire new owner/repo "Fix the login bug"
+pnpm squire new owner/repo "Fix the login bug"
 
 # Check status
-pnpm --filter @squire/cli exec squire status <task-id>
+pnpm squire status <task-id>
 
 # View logs
-pnpm --filter @squire/cli exec squire logs <task-id>
+pnpm squire logs <task-id>
 
 # List all tasks
-pnpm --filter @squire/cli exec squire list
+pnpm squire list
 ```
 
 ### Steward (Task Orchestration)
 
 ```bash
-# Initialize workspace with goals
-pnpm --filter @squire/steward exec steward init
+# Set up environment (AI Gateway key for task analysis)
+echo "AI_GATEWAY_API_KEY=your_key_here" > .env
+
+# Create steward.yaml, goals.md, and signals/ directory
+pnpm steward init
+
+# Dry run to see what tasks would be generated
+export $(cat .env | xargs) && pnpm steward run --dry-run
 
 # Run one cycle (collect signals → analyze → dispatch tasks)
-pnpm --filter @squire/steward exec steward run
+export $(cat .env | xargs) && pnpm steward run
 
-# Dry run to see what would be dispatched
-pnpm --filter @squire/steward exec steward run --dry-run
+# Run continuously (respects schedule.interval and quiet_hours)
+export $(cat .env | xargs) && pnpm steward watch
 ```
 
 ## Configuration
