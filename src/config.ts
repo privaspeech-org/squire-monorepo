@@ -6,7 +6,7 @@ export interface StewardConfig {
   signals: {
     github?: {
       repos: string[];
-      watch: string[];
+      watch: ('open_prs' | 'failed_ci' | 'issues' | 'greptile_reviews')[];
     };
     posthog?: {
       project: string;
@@ -21,6 +21,10 @@ export interface StewardConfig {
       model: string;
       max_concurrent: number;
     };
+  };
+  auto_merge?: {
+    enabled: boolean;
+    min_confidence: number;
   };
   notify?: {
     telegram?: { chat_id: string };
