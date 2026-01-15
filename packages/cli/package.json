@@ -1,0 +1,27 @@
+{
+  "name": "@squire/cli",
+  "version": "0.1.0",
+  "description": "Async coding agent - fire and forget, come back to a PR",
+  "type": "module",
+  "bin": {
+    "squire": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@squire/core": "workspace:*",
+    "commander": "^12.0.0",
+    "chalk": "^5.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MIT"
+}
