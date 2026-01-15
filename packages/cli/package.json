@@ -9,7 +9,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "test": "node --import tsx --test src/**/*.test.ts"
   },
   "dependencies": {
     "@squire/core": "workspace:*",
@@ -18,6 +19,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "tsx": "^4.7.0",
     "typescript": "^5.7.0"
   },
   "engines": {
