@@ -18,6 +18,7 @@ describe('SquireConfig', () => {
         tasksDir: '/tmp/tasks',
         workerImage: 'squire-worker:latest',
         maxConcurrent: 5,
+        autoCleanup: true,
       };
 
       assert.equal(config.githubToken, 'token');
@@ -25,6 +26,7 @@ describe('SquireConfig', () => {
       assert.equal(config.tasksDir, '/tmp/tasks');
       assert.equal(config.workerImage, 'squire-worker:latest');
       assert.equal(config.maxConcurrent, 5);
+      assert.equal(config.autoCleanup, true);
     });
   });
 
@@ -47,6 +49,7 @@ describe('SquireConfig', () => {
       // - model: 'opencode/glm-4.7-free'
       // - workerImage: 'squire-worker:latest'
       // - maxConcurrent: 5
+      // - autoCleanup: true (unless SQUIRE_AUTO_CLEANUP=false)
       assert.ok(true, 'Defaults documented');
     });
   });

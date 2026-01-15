@@ -1,0 +1,9 @@
+{
+  "$schema": "./squire.config.schema.json",
+  "githubToken": "ghp_your_github_token_here",
+  "model": "opencode/glm-4.7-free",
+  "workerImage": "squire-worker:latest",
+  "tasksDir": "~/.squire/tasks",
+  "maxConcurrent": 5,
+  "autoCleanup": true
+}

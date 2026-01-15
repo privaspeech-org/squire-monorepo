@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Squire Configuration",
+  "description": "Configuration for Squire CLI",
+  "type": "object",
+  "properties": {
+    "githubToken": {
+      "type": "string",
+      "description": "GitHub personal access token for cloning repos and creating PRs"
+    },
+    "model": {
+      "type": "string",
+      "description": "AI model for the coding agent (e.g., opencode/glm-4.7-free)",
+      "default": "opencode/glm-4.7-free"
+    },
+    "workerImage": {
+      "type": "string",
+      "description": "Docker/Podman image for worker containers",
+      "default": "squire-worker:latest"
+    },
+    "tasksDir": {
+      "type": "string",
+      "description": "Directory to store task state files",
+      "default": "~/.squire/tasks"
+    },
+    "maxConcurrent": {
+      "type": "integer",
+      "description": "Maximum number of parallel tasks",
+      "default": 5,
+      "minimum": 1
+    },
+    "autoCleanup": {
+      "type": "boolean",
+      "description": "Automatically remove containers when tasks complete or fail",
+      "default": true
+    }
+  },
+  "additionalProperties": false
+}

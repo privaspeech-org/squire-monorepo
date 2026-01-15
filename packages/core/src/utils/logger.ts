@@ -10,6 +10,7 @@ export interface LogEntry {
 
 let currentLogLevel: LogLevel = 'info';
 let verboseMode = false;
+let quietMode = false;
 
 export function setLogLevel(level: LogLevel): void {
   currentLogLevel = level;
@@ -19,7 +20,12 @@ export function setVerbose(enabled: boolean): void {
   verboseMode = enabled;
   if (enabled) {
     currentLogLevel = 'debug';
+    quietMode = false;
   }
+}
+
+export function setQuiet(enabled: boolean): void {
+  quietMode = enabled;
 }
 
 export function getLogLevel(): LogLevel {
@@ -27,6 +33,9 @@ export function getLogLevel(): LogLevel {
 }
 
 function shouldLog(level: LogLevel): boolean {
+  if (quietMode) {
+    return false;
+  }
   const levels: Record<LogLevel, number> = {
     debug: 0,
     info: 1,

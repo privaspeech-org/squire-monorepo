@@ -39,6 +39,7 @@ export {
   createLogger,
   setLogLevel,
   setVerbose,
+  setQuiet,
   getLogLevel,
   type LogLevel,
   type LogEntry,

@@ -5,7 +5,9 @@ import {
   updateTask,
   isContainerRunning,
   getContainerExitCode,
+  removeContainer,
 } from '@squire/core';
+import { getConfig } from '../config.js';
 
 export const statusCommand = new Command('status')
   .description('Get status of a task')
@@ -23,25 +25,42 @@ export const statusCommand = new Command('status')
       const running = await isContainerRunning(task.containerId);
 
       if (!running) {
-        // Container finished - check exit code
-        const exitCode = await getContainerExitCode(task.containerId);
+        // Container finished - re-read task file as container may have updated it
+        const updatedTask = getTask(id);
+        if (updatedTask) {
+          Object.assign(task, updatedTask);
+        }
 
-        if (exitCode === 0) {
-          // Task completed but status wasn't updated (shouldn't happen normally)
-          updateTask(id, {
-            status: 'completed',
-            completedAt: new Date().toISOString(),
-          });
-          task.status = 'completed';
-        } else {
-          // Task failed
-          updateTask(id, {
-            status: 'failed',
-            error: `Container exited with code ${exitCode}`,
-            completedAt: new Date().toISOString(),
-          });
-          task.status = 'failed';
-          task.error = `Container exited with code ${exitCode}`;
+        // If container updated the status, use that. Otherwise check exit code.
+        if (task.status === 'running') {
+          const exitCode = await getContainerExitCode(task.containerId);
+
+          if (exitCode === 0) {
+            updateTask(id, {
+              status: 'completed',
+              completedAt: new Date().toISOString(),
+            });
+            task.status = 'completed';
+          } else {
+            updateTask(id, {
+              status: 'failed',
+              error: `Container exited with code ${exitCode}`,
+              completedAt: new Date().toISOString(),
+            });
+            task.status = 'failed';
+            task.error = `Container exited with code ${exitCode}`;
+          }
+
+          // Auto-cleanup container if enabled and task is done
+          const config = getConfig();
+          if (config.autoCleanup && (task.status === 'completed' || task.status === 'failed')) {
+            try {
+              await removeContainer(task.containerId);
+              console.log(chalk.dim(`Container ${task.containerId.slice(0, 12)} removed (auto-cleanup)`));
+            } catch {
+              // Ignore cleanup errors - container might already be removed
+            }
+          }
         }
       }
     }

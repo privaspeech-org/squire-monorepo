@@ -8,6 +8,7 @@ export interface SquireConfig {
   tasksDir?: string;
   workerImage?: string;
   maxConcurrent?: number;  // Max parallel tasks (default: 5)
+  autoCleanup?: boolean;   // Auto-remove containers on task completion (default: true)
 }
 
 const CONFIG_PATHS = [
@@ -30,6 +31,7 @@ export function getConfig(): SquireConfig {
     tasksDir: process.env.SQUIRE_TASKS_DIR,
     workerImage: process.env.SQUIRE_WORKER_IMAGE || 'squire-worker:latest',
     maxConcurrent: process.env.SQUIRE_MAX_CONCURRENT ? parseInt(process.env.SQUIRE_MAX_CONCURRENT, 10) : 5,
+    autoCleanup: process.env.SQUIRE_AUTO_CLEANUP !== 'false',  // Default true
   };
 
   // Try to load config file
@@ -43,6 +45,7 @@ export function getConfig(): SquireConfig {
         if (fileConfig.tasksDir) config.tasksDir = fileConfig.tasksDir;
         if (fileConfig.workerImage) config.workerImage = fileConfig.workerImage;
         if (fileConfig.maxConcurrent) config.maxConcurrent = fileConfig.maxConcurrent;
+        if (fileConfig.autoCleanup !== undefined) config.autoCleanup = fileConfig.autoCleanup;
         break;
       } catch {
         // Ignore invalid config files

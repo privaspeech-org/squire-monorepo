@@ -1,9 +1,44 @@
 import Docker from 'dockerode';
+import { existsSync } from 'node:fs';
 import type { Task } from '../types/task.js';
 import { updateTask, getTasksDir } from '../task/store.js';
 import { debug, info } from '../utils/logger.js';
 
-const docker = new Docker();
+/**
+ * Create Docker client with auto-detection for podman.
+ * Priority:
+ * 1. DOCKER_HOST environment variable
+ * 2. Podman user socket (rootless)
+ * 3. Default Docker socket
+ */
+function createDockerClient(): Docker {
+  // If DOCKER_HOST is set, use it
+  if (process.env.DOCKER_HOST) {
+    debug('container', 'Using DOCKER_HOST', { host: process.env.DOCKER_HOST });
+    return new Docker();
+  }
+
+  // Try podman user socket (rootless podman)
+  const uid = process.getuid?.() ?? 1000;
+  const podmanSocket = `/run/user/${uid}/podman/podman.sock`;
+  if (existsSync(podmanSocket)) {
+    debug('container', 'Auto-detected podman socket', { socket: podmanSocket });
+    return new Docker({ socketPath: podmanSocket });
+  }
+
+  // Try system-wide podman socket
+  const podmanSystemSocket = '/run/podman/podman.sock';
+  if (existsSync(podmanSystemSocket)) {
+    debug('container', 'Auto-detected system podman socket', { socket: podmanSystemSocket });
+    return new Docker({ socketPath: podmanSystemSocket });
+  }
+
+  // Fall back to default Docker
+  debug('container', 'Using default Docker socket');
+  return new Docker();
+}
+
+const docker = createDockerClient();
 
 const DEFAULT_WORKER_IMAGE = 'squire-worker:latest';
 

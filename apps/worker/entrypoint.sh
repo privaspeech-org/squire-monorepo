@@ -102,7 +102,7 @@ fi
 # Check if there are changes to push
 # First, stage and commit any uncommitted changes
 git add -A
-COMMIT_MSG="jules: ${PROMPT:0:72}"
+COMMIT_MSG="squire: ${PROMPT:0:72}"
 git commit -m "$COMMIT_MSG" 2>/dev/null || true
 
 # Check if we have commits ahead of origin

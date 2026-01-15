@@ -4,6 +4,7 @@ import {
   setLogLevel,
   getLogLevel,
   setVerbose,
+  setQuiet,
   createLogger,
   debug,
   info,
@@ -24,8 +25,9 @@ describe('Logger', () => {
       capturedOutput.push(chunk.toString());
       return true;
     };
-    // Reset log level
+    // Reset log level and quiet mode
     setLogLevel('info');
+    setQuiet(false);
   });
 
   afterEach(() => {
@@ -33,6 +35,7 @@ describe('Logger', () => {
     process.stdout.write = originalStdoutWrite;
     // Reset to default
     setLogLevel('info');
+    setQuiet(false);
   });
 
   describe('setLogLevel / getLogLevel', () => {
@@ -49,6 +52,49 @@ describe('Logger', () => {
     it('should set log level to debug when verbose is enabled', () => {
       setVerbose(true);
       assert.equal(getLogLevel(), 'debug');
+    });
+
+    it('should disable quiet mode when verbose is enabled', () => {
+      setQuiet(true);
+      info('test', 'Should not appear');
+      assert.equal(capturedOutput.length, 0);
+
+      setVerbose(true);
+      info('test', 'Should appear');
+      assert.equal(capturedOutput.length, 1);
+    });
+  });
+
+  describe('setQuiet', () => {
+    it('should suppress all logs when quiet mode is enabled', () => {
+      setQuiet(true);
+
+      debug('test', 'Debug');
+      info('test', 'Info');
+      warn('test', 'Warn');
+      error('test', 'Error');
+
+      assert.equal(capturedOutput.length, 0);
+    });
+
+    it('should allow logs when quiet mode is disabled', () => {
+      setQuiet(true);
+      setQuiet(false);
+
+      info('test', 'Should appear');
+      assert.equal(capturedOutput.length, 1);
+    });
+
+    it('should take precedence over log level', () => {
+      setLogLevel('debug');
+      setQuiet(true);
+
+      debug('test', 'Debug');
+      info('test', 'Info');
+      warn('test', 'Warn');
+      error('test', 'Error');
+
+      assert.equal(capturedOutput.length, 0);
     });
   });
 

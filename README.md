@@ -1,168 +1,228 @@
-# Steward 🏰
+# Squire Monorepo
 
-Task orchestrator that turns goals into coding tasks. Works with [Squire](https://github.com/privaspeech-org/squire) to automate software development.
+Fire-and-forget coding tasks. Come back to a PR.
 
-## Philosophy
+## Overview
 
-**Steward** generates tasks. **Squire** executes them.
+This monorepo contains two complementary tools:
 
-```
-Goal + Context + Signals → Steward → Tasks → Squire → PRs
-```
-
-Steward is a pipeline, not a chatbot. It uses LLMs narrowly for task generation, not for tool use or conversation.
-
-## Pipeline
+- **Squire** (`@squire/cli`) - Execute coding tasks in isolated containers
+- **Steward** (`@squire/steward`) - Orchestrate tasks from goals and signals
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  1. COLLECT        Gather signals from configured sources   │
-│     (deterministic)   - GitHub: PRs, issues, CI status      │
-│                       - Analytics: PostHog events           │
-│                       - Custom: webhooks, files             │
-├─────────────────────────────────────────────────────────────┤
-│  2. ANALYZE        Compare signals against goals            │
-│     (LLM)             - What's the current state?           │
-│                       - What tasks would move us forward?   │
-│                       - Priority and dependencies?          │
-├─────────────────────────────────────────────────────────────┤
-│  3. DISPATCH       Send tasks to Squire                     │
-│     (deterministic)   - Create task with prompt             │
-│                       - Track task ID                       │
-│                       - Respect concurrency limits          │
-├─────────────────────────────────────────────────────────────┤
-│  4. MONITOR        Track task completion                    │
-│     (deterministic)   - Poll Squire status                  │
-│                       - Check PR state                      │
-│                       - Handle failures                     │
-├─────────────────────────────────────────────────────────────┤
-│  5. REPORT         Notify human of progress                 │
-│     (deterministic)   - Telegram/Slack/Discord              │
-│                       - Daily summaries                     │
-│                       - Escalate blockers                   │
-└─────────────────────────────────────────────────────────────┘
+Goals + Signals → Steward → Tasks → Squire → PRs
 ```
+
+## Packages
+
+| Package | Description |
+|---------|-------------|
+| `@squire/core` | Shared types, task management, container orchestration |
+| `@squire/cli` | Squire CLI - run individual coding tasks |
+| `@squire/steward` | Steward CLI - generate tasks from goals |
+| `apps/worker` | Docker image with coding agent |
 
 ## Quick Start
 
+### Squire (Individual Tasks)
+
 ```bash
 # Install
-git clone https://github.com/privaspeech-org/steward
-cd steward && npm install && npm link
+pnpm install
+pnpm build
 
-# Initialize workspace
-steward init
+# Create and run a task
+pnpm --filter @squire/cli exec squire new owner/repo "Fix the login bug"
 
-# Run once (collect → analyze → dispatch)
-steward run
+# Check status
+pnpm --filter @squire/cli exec squire status <task-id>
 
-# Watch mode (continuous loop)
-steward watch --interval 30m
+# View logs
+pnpm --filter @squire/cli exec squire logs <task-id>
 
-# Dry run (show what would be dispatched)
-steward run --dry-run
+# List all tasks
+pnpm --filter @squire/cli exec squire list
+```
+
+### Steward (Task Orchestration)
+
+```bash
+# Initialize workspace with goals
+pnpm --filter @squire/steward exec steward init
+
+# Run one cycle (collect signals → analyze → dispatch tasks)
+pnpm --filter @squire/steward exec steward run
+
+# Dry run to see what would be dispatched
+pnpm --filter @squire/steward exec steward run --dry-run
 ```
 
 ## Configuration
 
-### steward.yaml
+### Squire Configuration
+
+Squire looks for configuration in these locations (in order):
+1. `./squire.config.json` (current directory)
+2. `~/.squire/config.json`
+3. `~/.config/squire/config.json`
+
+#### Configuration Options
+
+| Option | Environment Variable | Default | Description |
+|--------|---------------------|---------|-------------|
+| `githubToken` | `GITHUB_TOKEN` or `GH_TOKEN` | - | GitHub token for cloning repos and creating PRs |
+| `model` | `SQUIRE_MODEL` | `opencode/glm-4.7-free` | AI model for the coding agent |
+| `tasksDir` | `SQUIRE_TASKS_DIR` | `~/.squire/tasks` | Directory to store task state |
+| `workerImage` | `SQUIRE_WORKER_IMAGE` | `squire-worker:latest` | Docker/Podman image for worker containers |
+| `maxConcurrent` | `SQUIRE_MAX_CONCURRENT` | `5` | Maximum parallel tasks |
+| `autoCleanup` | `SQUIRE_AUTO_CLEANUP` | `true` | Auto-remove containers on task completion |
+
+#### Example Configuration
+
+```json
+{
+  "githubToken": "ghp_xxxxxxxxxxxx",
+  "model": "opencode/glm-4.7-free",
+  "workerImage": "squire-worker:latest",
+  "maxConcurrent": 3,
+  "autoCleanup": true
+}
+```
+
+#### Docker/Podman Support
+
+Squire auto-detects your container runtime:
+- If `DOCKER_HOST` is set, uses that
+- Otherwise checks for Podman socket at `/run/user/$UID/podman/podman.sock`
+- Falls back to default Docker socket
+
+For Podman, ensure the socket is running:
+```bash
+systemctl --user start podman.socket
+```
+
+### Steward Configuration
+
+Create `steward.yaml` in your workspace:
 
 ```yaml
-# What we're trying to achieve
+# Goals to achieve
 goals:
   - path: ./goals.md
 
-# Where to get signals
+# Signal sources
 signals:
   github:
     repos:
-      - privaspeech-org/privaspeech
+      - owner/repo
     watch:
       - open_prs
       - failed_ci
       - issues
-   
-  posthog:
-    project: privaspeech
-    events:
-      - transcription_error
-   
-  files:
-    - ./signals/tasks.md
 
-# How to execute tasks
+# Task execution
 execution:
   backend: squire
   squire:
-    default_repo: privaspeech-org/privaspeech
-    model: opencode/minimax-m2.1-free
+    default_repo: owner/repo
+    model: opencode/glm-4.7-free
     max_concurrent: 3
 
-# Where to send notifications  
-notify:
-  telegram:
-    chat_id: "123456"
-
-# LLM for task generation (narrow use) - uses Vercel AI Gateway
+# LLM for task generation
 llm:
   model: openai/gpt-4o-mini
 
-# Behavior
+# Schedule
 schedule:
   interval: 30m
-  quiet_hours: "22:00-08:00"
-  timezone: Europe/Copenhagen
 ```
-
-### Environment Variables
-
-```bash
-export AI_GATEWAY_API_KEY=your_key
-```
-
-The AI Gateway uses the `AI_GATEWAY_API_KEY` environment variable for authentication. Model format should be `provider/model-name` (e.g., `openai/gpt-4o-mini`, `anthropic/claude-sonnet-4`).
 
 ## Commands
 
+### Squire Commands
+
 | Command | Description |
 |---------|-------------|
-| `steward init` | Initialize workspace with config |
-| `steward run` | Run one cycle of the pipeline |
-| `steward watch` | Continuous mode with interval |
+| `squire new <repo> "<prompt>"` | Create and start a new task |
+| `squire status <id>` | Get task status |
+| `squire list` | List all tasks |
+| `squire logs <id>` | View container logs |
+| `squire stop <id>` | Stop a running task |
+| `squire retry <id>` | Retry a failed task |
+| `squire clean` | Remove old tasks and containers |
+| `squire ps` | Show running containers |
+| `squire watch <id>` | Watch task progress in real-time |
+| `squire config` | Show current configuration |
+
+### Steward Commands
+
+| Command | Description |
+|---------|-------------|
+| `steward init` | Initialize workspace |
+| `steward run` | Run one pipeline cycle |
+| `steward run --dry-run` | Show what would be dispatched |
+| `steward watch` | Continuous mode |
 | `steward status` | Show current state |
 | `steward signals` | List collected signals |
-| `steward tasks` | List active/pending tasks |
+| `steward tasks` | List active tasks |
+
+## Building the Worker Image
+
+```bash
+# Build with Docker
+docker build -t squire-worker:latest apps/worker/
+
+# Build with Podman
+podman build -t squire-worker:latest apps/worker/
+```
+
+## Development
+
+```bash
+# Install dependencies
+pnpm install
+
+# Build all packages
+pnpm build
+
+# Run tests
+pnpm test
+
+# Watch mode for development
+pnpm dev
+```
 
 ## Architecture
 
 ```
-src/
-├── index.ts          # CLI entry point
-├── config.ts         # Load steward.yaml
-├── pipeline/
-│   ├── collect.ts    # Signal collection
-│   ├── analyze.ts    # LLM task generation
-│   ├── dispatch.ts   # Send to Squire
-│   ├── monitor.ts    # Track completion
-│   └── report.ts     # Notifications
-├── signals/
-│   ├── github.ts     # GitHub signal source
-│   ├── posthog.ts    # PostHog signal source
-│   └── files.ts      # File-based signals
-└── notify/
-    ├── telegram.ts   # Telegram notifications
-    └── slack.ts      # Slack notifications
+squire-monorepo/
+├── packages/
+│   ├── core/           # @squire/core - Shared functionality
+│   │   └── src/
+│   │       ├── types/      # Task types
+│   │       ├── task/       # Task store, limits
+│   │       ├── worker/     # Container management
+│   │       └── utils/      # Logger
+│   │
+│   ├── cli/            # @squire/cli - Squire CLI
+│   │   └── src/
+│   │       ├── commands/   # CLI commands
+│   │       └── config.ts   # Config loading
+│   │
+│   └── steward/        # @squire/steward - Orchestrator
+│       └── src/
+│           ├── pipeline/   # collect, analyze, dispatch, monitor
+│           └── config.ts   # YAML config loading
+│
+├── apps/
+│   └── worker/         # Docker image
+│       ├── Dockerfile
+│       ├── entrypoint.sh
+│       └── agent-prompt.md
+│
+├── pnpm-workspace.yaml
+└── turbo.json
 ```
-
-## Why a Pipeline, Not a Chatbot?
-
-We tried running Steward as a Clawdbot instance, but it required a model good at everything: conversation, context, tools, decisions. Too much.
-
-Steward as a pipeline:
-- Uses LLM **only** for task analysis ✅
-- Everything else is deterministic ✅
-- Easier to debug and reason about ✅
-- Works with cheaper/smaller models ✅
 
 ## License
 

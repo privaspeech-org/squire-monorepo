@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import { setVerbose } from '@squire/core';
+import { setVerbose, setQuiet } from '@squire/core';
 import { newCommand } from './commands/new.js';
 import { listCommand } from './commands/list.js';
 import { statusCommand } from './commands/status.js';
@@ -15,6 +15,9 @@ import { psCommand } from './commands/ps.js';
 import { retryCommand } from './commands/retry.js';
 import { watchCommand } from './commands/watch.js';
 import { webhookCommand } from './commands/webhook.js';
+
+// By default, suppress structured JSON logs for cleaner CLI output
+setQuiet(true);
 
 const program = new Command();
 

@@ -10,7 +10,7 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
-    "test": "node --import tsx --test src/**/*.test.ts"
+    "test": "node --import tsx --test 'src/**/*.test.ts' 'src/*.test.ts'"
   },
   "keywords": ["automation", "coding-agent", "orchestrator", "squire"],
   "license": "MIT",
