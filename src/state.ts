@@ -1,4 +1,5 @@
 import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { execSync } from 'child_process';
 
 export interface TaskRecord {
   taskId: string;
@@ -86,7 +87,6 @@ export function getFailedTasks(days: number): TaskRecord[] {
 // Sync state with actual Squire status
 export function syncWithSquire(): void {
   const state = loadState();
-  const { execSync } = require('child_process');
   
   for (const task of state.tasks) {
     if (task.status !== 'dispatched') continue;
