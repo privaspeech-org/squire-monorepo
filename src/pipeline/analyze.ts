@@ -16,13 +16,17 @@ export async function analyzeTasks(
   goals: string,
   signals: Signal[]
 ): Promise<Task[]> {
-  // Sync state with Squire before analyzing
   syncWithSquire();
   
-  // Gather context
-  const signalSummary = signals.map(s => 
-    `[${s.source}/${s.type}] ${JSON.stringify(s.data)}`
-  ).join('\n');
+  function formatSignal(s: Signal): string {
+    if (s.type === 'greptile_review' && s.data.parsed) {
+      const p = s.data.parsed as { file: string; line: number; description: string };
+      return `[github/greptile_review] PR#${s.data.prNumber}: ${p.file}:${p.line} - ${p.description}`;
+    }
+    return `[${s.source}/${s.type}] ${JSON.stringify(s.data)}`;
+  }
+
+  const signalSummary = signals.map(formatSignal).join('\n');
 
   const activeTasks = getActiveTasks();
   const activeTasksSummary = activeTasks.length > 0

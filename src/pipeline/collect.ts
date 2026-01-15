@@ -27,6 +27,10 @@ export async function collectSignals(config: StewardConfig): Promise<Signal[]> {
         const issues = collectGitHubIssues(repo);
         signals.push(...issues);
       }
+      if (config.signals.github.watch.includes('greptile_reviews')) {
+        const reviews = collectGreptileReviews(repo);
+        signals.push(...reviews);
+      }
     }
   }
 
@@ -99,6 +103,74 @@ function collectGitHubIssues(repo: string): Signal[] {
       data: { repo, ...issue },
       timestamp: new Date(issue.createdAt),
     }));
+  } catch {
+    return [];
+  }
+}
+
+export interface GreptileComment {
+  file: string;
+  line: number;
+  description: string;
+}
+
+export function parseGreptileBody(body: string): GreptileComment | null {
+  const fileMatch = body.match(/File:\s*([^\s\n]+)/);
+  const lineMatch = body.match(/Line:\s*(\d+)/);
+  const descMatch = body.match(/Issue:\s*([^\n]+)/);
+
+  if (!fileMatch || !descMatch) {
+    return null;
+  }
+
+  return {
+    file: fileMatch[1],
+    line: lineMatch ? parseInt(lineMatch[1], 10) : 0,
+    description: descMatch[1].trim(),
+  };
+}
+
+function collectGreptileReviews(repo: string): Signal[] {
+  try {
+    const prsOutput = execSync(
+      `gh pr list --repo ${repo} --state open --json number`,
+      { encoding: 'utf-8' }
+    );
+    const prs = JSON.parse(prsOutput);
+    const allComments: any[] = [];
+
+    for (const pr of prs) {
+      try {
+        const commentsOutput = execSync(
+          `gh api repos/${repo}/pulls/${pr.number}/comments`,
+          { encoding: 'utf-8' }
+        );
+        const comments = JSON.parse(commentsOutput);
+        allComments.push(...comments.map((c: any) => ({ ...c, prNumber: pr.number })));
+      } catch {
+      }
+    }
+
+    const greptileComments = allComments.filter((comment: any) => 
+      comment.user?.login === 'greptile-apps'
+    );
+
+    return greptileComments.map((comment: any) => {
+      const parsed = parseGreptileBody(comment.body);
+      return {
+        source: 'github' as const,
+        type: 'greptile_review',
+        data: {
+          repo,
+          prNumber: comment.prNumber,
+          commentId: comment.id,
+          author: comment.user?.login,
+          body: comment.body,
+          parsed: parsed || null,
+        },
+        timestamp: new Date(comment.created_at),
+      };
+    });
   } catch {
     return [];
   }

@@ -6,7 +6,7 @@ export interface StewardConfig {
   signals: {
     github?: {
       repos: string[];
-      watch: string[];
+      watch: ('open_prs' | 'failed_ci' | 'issues' | 'greptile_reviews')[];
     };
     posthog?: {
       project: string;
