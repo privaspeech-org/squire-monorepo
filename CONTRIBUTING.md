@@ -1,6 +1,6 @@
-# Contributing to Jules Clone
+# Contributing to Squire
 
-Thank you for your interest in contributing! This document provides guidelines for contributing to Jules Clone.
+Thank you for your interest in contributing! This document provides guidelines for contributing to Squire.
 
 ## Prerequisites
 
@@ -13,20 +13,20 @@ Thank you for your interest in contributing! This document provides guidelines f
 1. **Fork and clone the repository**
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/squire-clone.git
-cd squire-clone
+git clone https://github.com/privaspeech-org/squire-monorepo.git
+cd squire-monorepo
 ```
 
 2. **Install dependencies**
 
 ```bash
-npm install
+pnpm install
 ```
 
 3. **Build the project**
 
 ```bash
-npm run build
+pnpm run build
 ```
 
 4. **Build the Docker worker image**
@@ -38,7 +38,7 @@ docker build -t squire-worker .
 5. **Link for local development**
 
 ```bash
-npm link
+pnpm link --global
 ```
 
 Now you can run `squire` commands directly from your local clone.
@@ -48,13 +48,13 @@ Now you can run `squire` commands directly from your local clone.
 ### Building
 
 ```bash
-npm run build    # Build once
-npm run dev      # Watch mode (rebuilds on changes)
+pnpm run build    # Build once
+pnpm run dev      # Watch mode (rebuilds on changes)
 ```
 
 ### Running the CLI
 
-After linking with `npm link`, you can run:
+After linking with `pnpm link --global`, you can run:
 
 ```bash
 squire --help
@@ -63,13 +63,19 @@ squire --help
 Or run directly:
 
 ```bash
-npm start -- --help
-node dist/index.js --help
+pnpm start -- --help
+node packages/cli/dist/index.js --help
 ```
 
 ## Testing
 
-Currently, this project uses manual testing. To test changes:
+The project has 72 automated tests that can be run with:
+
+```bash
+pnpm test
+```
+
+To test changes manually:
 
 1. Create a test task against a fork or test repository:
 
@@ -90,18 +96,14 @@ squire logs <task-id>
 ## Project Structure
 
 ```
-squire-clone/
-├── src/
-│   ├── commands/      # CLI command implementations
-│   ├── config.ts      # Configuration management
-│   ├── index.ts       # CLI entry point
-│   ├── task/          # Task management logic
-│   └── worker/        # Worker orchestration
-├── worker/
-│   ├── entrypoint.sh  # Worker container entry point
-│   └── agent-prompt.md # OpenCode agent prompt
-├── dist/              # Compiled output (generated)
-└── tasks/             # Task storage (generated)
+squire-monorepo/
+├── packages/
+│   ├── core/          # Core task management and utilities
+│   ├── cli/           # Command-line interface
+│   └── steward/       # Task orchestration and worker management
+├── apps/
+│   └── worker/        # Docker worker application
+└── packages/*/dist/  # Compiled output (generated)
 ```
 
 ## Code Style
@@ -123,9 +125,9 @@ The project uses strict TypeScript settings:
 
 ### Adding a New CLI Command
 
-1. Create a new file in `src/commands/` (e.g., `newCommand.ts`)
+1. Create a new file in `packages/cli/src/commands/` (e.g., `newCommand.ts`)
 2. Export a function that implements `Command` interface
-3. Register it in `src/index.ts`
+3. Register it in `packages/cli/src/index.ts`
 4. Add documentation in `README.md`
 
 Example:
@@ -144,8 +146,8 @@ export const myCommand = new Command('mycommand')
 ### Modifying Worker Behavior
 
 Worker behavior is controlled by:
-- `worker/entrypoint.sh` - Shell script that runs in container
-- `worker/agent-prompt.md` - Prompt sent to OpenCode
+- `apps/worker/entrypoint.sh` - Shell script that runs in container
+- `apps/worker/agent-prompt.md` - Prompt sent to OpenCode
 
 Modify these carefully as they affect how tasks are executed.
 
@@ -162,7 +164,8 @@ git checkout -b feature/your-feature-name
 3. **Build and test locally**
 
 ```bash
-npm run build
+pnpm run build
+pnpm test
 # Manual testing with squire new/status/logs commands
 ```
 
