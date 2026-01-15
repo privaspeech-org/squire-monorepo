@@ -7,5 +7,7 @@
 
 ## Secondary
 - Improve error messages to be actionable
-- Keep dependencies up to date
 - Reduce code duplication across packages
+
+## Automated (no action needed)
+- Dependencies are managed by Renovate bot
