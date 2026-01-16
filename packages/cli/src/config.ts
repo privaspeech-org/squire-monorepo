@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
+import { execSync } from 'node:child_process';
 
 export interface SquireConfig {
   githubToken?: string;
@@ -17,6 +18,14 @@ const CONFIG_PATHS = [
   join(homedir(), '.config', 'squire', 'config.json'),
 ];
 
+function getGhAuthToken(): string | undefined {
+  try {
+    return execSync('gh auth token', { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+  } catch {
+    return undefined;
+  }
+}
+
 let cachedConfig: SquireConfig | null = null;
 
 export function getConfig(): SquireConfig {
@@ -24,9 +33,9 @@ export function getConfig(): SquireConfig {
     return cachedConfig;
   }
 
-  // Start with environment variables
+  // Start with environment variables, fall back to gh CLI
   const config: SquireConfig = {
-    githubToken: process.env.GITHUB_TOKEN || process.env.GH_TOKEN,
+    githubToken: process.env.GITHUB_TOKEN || process.env.GH_TOKEN || getGhAuthToken(),
     model: process.env.SQUIRE_MODEL || 'opencode/glm-4.7-free',
     tasksDir: process.env.SQUIRE_TASKS_DIR,
     workerImage: process.env.SQUIRE_WORKER_IMAGE || 'squire-worker:latest',
