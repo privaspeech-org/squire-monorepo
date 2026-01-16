@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Activity, CheckCircle2, Clock, XCircle, GitPullRequest, GitMerge } from 'lucide-react';
+import { Scroll, Sword, Shield, Skull, BookOpen, Crown } from 'lucide-react';
 
 interface StatsCardsProps {
   stats: {
@@ -18,87 +18,92 @@ interface StatsCardsProps {
 export function StatsCards({ stats }: StatsCardsProps) {
   const cards = [
     {
-      title: 'TOTAL_TASKS',
+      title: 'Total Quests',
       value: stats.total,
-      icon: Activity,
+      icon: BookOpen,
       color: 'text-primary',
-      glow: 'glow-cyan',
+      sealClass: 'wax-seal-warning',
       border: 'border-primary/30',
-      hover: 'hover:glow-cyan',
+      description: 'In the ledger',
     },
     {
-      title: 'RUNNING',
+      title: 'On Campaign',
       value: stats.running,
-      icon: Clock,
+      icon: Sword,
       color: 'text-warning',
-      glow: 'shadow-warning/20',
+      sealClass: 'wax-seal-warning',
       border: 'border-warning/30',
-      hover: 'hover:shadow-warning/20',
+      description: 'Knights abroad',
     },
     {
-      title: 'COMPLETED',
+      title: 'Victorious',
       value: stats.completed,
-      icon: CheckCircle2,
+      icon: Shield,
       color: 'text-accent',
-      glow: 'glow-green',
+      sealClass: 'wax-seal-success',
       border: 'border-accent/30',
-      hover: 'hover:glow-green',
+      description: 'Quests fulfilled',
     },
     {
-      title: 'FAILED',
+      title: 'Fallen',
       value: stats.failed,
-      icon: XCircle,
+      icon: Skull,
       color: 'text-destructive',
-      glow: 'glow-red',
+      sealClass: 'wax-seal',
       border: 'border-destructive/30',
-      hover: 'hover:glow-red',
+      description: 'In memoriam',
     },
     {
-      title: 'PULL_REQUESTS',
+      title: 'Royal Decrees',
       value: stats.withPr,
-      icon: GitPullRequest,
-      color: 'text-secondary',
-      glow: 'glow-magenta',
-      border: 'border-secondary/30',
-      hover: 'hover:glow-magenta',
+      icon: Scroll,
+      color: 'text-primary',
+      sealClass: 'wax-seal-warning',
+      border: 'border-primary/30',
+      description: 'Scrolls drafted',
     },
     {
-      title: 'PR_MERGED',
+      title: 'Sealed',
       value: stats.prMerged,
-      icon: GitMerge,
+      icon: Crown,
       color: 'text-primary',
-      glow: 'shadow-primary/20',
+      sealClass: 'wax-seal-success',
       border: 'border-primary/30',
-      hover: 'hover:shadow-primary/20',
+      description: 'Royal approval',
     },
   ];
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-      {cards.map((card, index) => {
+      {cards.map((card) => {
         const Icon = card.icon;
         return (
           <Card
             key={card.title}
-            className={`${card.border} bg-card/50 backdrop-blur-sm border transition-all duration-300 hover:scale-105 relative overflow-hidden group ${card.glow} ${card.hover}`}
+            className={`tavern-board ${card.border} transition-all duration-300 hover:scale-105 relative overflow-hidden group rounded-sm`}
           >
-            {/* Corner accent */}
-            <div className={`absolute top-0 right-0 w-12 h-12 ${card.color} opacity-10 blur-xl group-hover:opacity-20 transition-opacity`} />
+            {/* Torch glow on hover */}
+            <div className={`absolute top-0 right-0 w-20 h-20 bg-gradient-radial from-amber-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none`} />
 
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className={`text-xs font-mono font-bold ${card.color} uppercase tracking-wider`}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative">
+              <CardTitle className={`text-xs font-display font-semibold ${card.color} uppercase tracking-wider`}>
                 {card.title}
               </CardTitle>
-              <Icon className={`h-5 w-5 ${card.color} animate-pulse-glow`} />
+              <div className={`${card.sealClass} w-8 h-8 text-[10px] flex items-center justify-center`}>
+                <Icon className="h-3.5 w-3.5" />
+              </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="relative">
               <div className={`text-3xl font-display font-bold ${card.color} tabular-nums`}>
                 {card.value.toString().padStart(2, '0')}
               </div>
-              <div className="text-xs font-mono text-muted-foreground mt-1">
-                <span className={card.color}>{'>'}</span> SYS_STAT_{index.toString().padStart(2, '0')}
+              <div className="text-[10px] font-body text-muted-foreground mt-1 italic">
+                {card.description}
               </div>
             </CardContent>
+
+            {/* Corner accent */}
+            <div className="absolute bottom-1 left-1 w-3 h-3 border-l border-b border-primary/20" />
           </Card>
         );
       })}

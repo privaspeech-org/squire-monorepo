@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus } from 'lucide-react';
+import { Scroll } from 'lucide-react';
 
 interface NewTaskDialogProps {
   onTaskCreated?: () => void;
@@ -65,79 +65,94 @@ export function NewTaskDialog({ onTaskCreated }: NewTaskDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="font-mono text-sm glow-cyan uppercase tracking-wider">
-          <Plus className="h-4 w-4 mr-2" />
-          NEW_TASK
+        <Button className="font-display text-sm btn-golden uppercase tracking-wider">
+          <Scroll className="h-4 w-4 mr-2" />
+          New Quest
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px] border border-primary/30 bg-card/95 backdrop-blur-xl glow-cyan">
+      <DialogContent className="sm:max-w-[600px] parchment-card border-primary/30 backdrop-blur-xl">
         <form onSubmit={handleSubmit}>
-          {/* Top accent bar */}
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary to-transparent" />
+          {/* Top gold border accent */}
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent" />
 
           <DialogHeader className="space-y-3">
-            <DialogTitle className="text-2xl font-display uppercase tracking-wider text-primary text-glow-cyan">
-              <span className="text-accent text-sm mr-2">{'>'}</span>
-              INITIALIZE_NEW_TASK
+            <DialogTitle className="text-2xl font-display uppercase tracking-wider text-primary text-glow-gold flex items-center gap-3">
+              <div className="wax-seal-warning text-sm">
+                <Scroll className="h-4 w-4" />
+              </div>
+              Issue New Quest
             </DialogTitle>
-            <DialogDescription className="font-mono text-xs text-muted-foreground border-l-2 border-primary/30 pl-3">
-              <span className="text-primary">{'>'}</span> Deploy autonomous coding agent to target repository
+            <DialogDescription className="font-body text-sm text-muted-foreground italic border-l-2 border-primary/30 pl-3">
+              Draft thy orders for the squire to carry forth into the realm
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-4 py-6">
+          <div className="grid gap-5 py-6">
             <div className="grid gap-2">
-              <Label htmlFor="repo" className="font-mono text-xs uppercase tracking-wider text-primary">
-                <span className="text-accent">{'>'}</span> REPOSITORY <span className="text-destructive">*</span>
+              <Label htmlFor="repo" className="font-display text-xs uppercase tracking-wider text-primary">
+                Target Domain <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="repo"
-                placeholder="owner/repo or https://github.com/owner/repo"
+                placeholder="e.g., owner/repository or https://github.com/..."
                 value={formData.repo}
                 onChange={(e) =>
                   setFormData({ ...formData, repo: e.target.value })
                 }
                 required
-                className="font-mono text-sm bg-input/50 border-primary/30 focus:border-primary focus:glow-cyan transition-all"
+                className="medieval-input font-mono text-sm"
               />
+              <p className="text-[10px] text-muted-foreground italic">
+                The kingdom wherein the squire shall labor
+              </p>
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="prompt" className="font-mono text-xs uppercase tracking-wider text-primary">
-                <span className="text-accent">{'>'}</span> TASK_PROMPT <span className="text-destructive">*</span>
+              <Label htmlFor="prompt" className="font-display text-xs uppercase tracking-wider text-primary">
+                Quest Directive <span className="text-destructive">*</span>
               </Label>
               <Textarea
                 id="prompt"
-                placeholder="Describe agent objectives and requirements..."
+                placeholder="Describe the sacred mission in detail..."
                 value={formData.prompt}
                 onChange={(e) =>
                   setFormData({ ...formData, prompt: e.target.value })
                 }
                 rows={4}
                 required
-                className="font-mono text-sm bg-input/50 border-primary/30 focus:border-primary focus:glow-cyan transition-all resize-none"
+                className="medieval-input font-body text-sm resize-none"
               />
+              <p className="text-[10px] text-muted-foreground italic">
+                Inscribe thy commands with clarity and purpose
+              </p>
+            </div>
+
+            <div className="manuscript-divider">
+              <span className="text-muted-foreground text-xs font-display uppercase tracking-wider">Optional Provisions</span>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="branch" className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
-                  <span className="text-primary">{'>'}</span> BRANCH_NAME
+                <Label htmlFor="branch" className="font-display text-xs uppercase tracking-wider text-muted-foreground">
+                  Banner Name
                 </Label>
                 <Input
                   id="branch"
-                  placeholder="auto-generated"
+                  placeholder="Auto-generated"
                   value={formData.branch}
                   onChange={(e) =>
                     setFormData({ ...formData, branch: e.target.value })
                   }
-                  className="font-mono text-sm bg-input/50 border-muted/30 focus:border-primary transition-all"
+                  className="medieval-input font-mono text-sm"
                 />
+                <p className="text-[10px] text-muted-foreground italic">
+                  The branch under which to ride
+                </p>
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="baseBranch" className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
-                  <span className="text-primary">{'>'}</span> BASE_BRANCH
+                <Label htmlFor="baseBranch" className="font-display text-xs uppercase tracking-wider text-muted-foreground">
+                  Origin Keep
                 </Label>
                 <Input
                   id="baseBranch"
@@ -146,8 +161,11 @@ export function NewTaskDialog({ onTaskCreated }: NewTaskDialogProps) {
                   onChange={(e) =>
                     setFormData({ ...formData, baseBranch: e.target.value })
                   }
-                  className="font-mono text-sm bg-input/50 border-muted/30 focus:border-primary transition-all"
+                  className="medieval-input font-mono text-sm"
                 />
+                <p className="text-[10px] text-muted-foreground italic">
+                  The base from which to venture
+                </p>
               </div>
             </div>
           </div>
@@ -157,31 +175,28 @@ export function NewTaskDialog({ onTaskCreated }: NewTaskDialogProps) {
               type="button"
               variant="outline"
               onClick={() => setOpen(false)}
-              className="font-mono text-xs uppercase border-muted/30 hover:border-destructive hover:text-destructive transition-all"
+              className="font-display text-xs uppercase tracking-wider border-muted/30 hover:border-destructive hover:text-destructive transition-all"
             >
-              CANCEL
+              Abandon
             </Button>
             <Button
               type="submit"
               disabled={loading}
-              className="font-mono text-xs uppercase glow-cyan"
+              className="font-display text-xs uppercase tracking-wider btn-golden"
             >
               {loading ? (
-                <>
-                  <span className="animate-pulse">INITIALIZING</span>
-                  <span className="animate-pulse ml-1">...</span>
-                </>
+                <span className="animate-torch-flicker">Inscribing...</span>
               ) : (
                 <>
-                  <span className="text-accent mr-1">{'>'}</span>
-                  DEPLOY_AGENT
+                  <Scroll className="h-3 w-3 mr-2" />
+                  Dispatch Squire
                 </>
               )}
             </Button>
           </DialogFooter>
 
-          {/* Bottom accent bar */}
-          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary to-transparent" />
+          {/* Bottom gold border accent */}
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent" />
         </form>
       </DialogContent>
     </Dialog>

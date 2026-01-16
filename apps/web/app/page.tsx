@@ -116,7 +116,7 @@ export default function Home() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this task?')) {
+    if (!confirm('Art thou certain thou wishest to abandon this quest?')) {
       return;
     }
 
@@ -145,85 +145,122 @@ export default function Home() {
   const filteredTasks = filterTasks(activeTab);
 
   return (
-    <div className="min-h-screen relative grid-bg">
-      {/* Diagonal accent line */}
-      <div className="fixed top-0 left-0 w-1 h-full bg-gradient-to-b from-primary via-secondary to-accent opacity-50 animate-pulse-glow"
-           style={{ transform: 'translateX(-1px)' }} />
+    <div className="min-h-screen relative stone-bg">
+      {/* Decorative torch glow in corners */}
+      <div className="fixed top-0 left-0 w-96 h-96 bg-gradient-radial from-amber-500/10 via-transparent to-transparent pointer-events-none" />
+      <div className="fixed top-0 right-0 w-96 h-96 bg-gradient-radial from-amber-500/10 via-transparent to-transparent pointer-events-none" />
 
-      {/* Top border glow */}
-      <div className="fixed top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary to-transparent animate-pulse-glow" />
+      {/* Top decorative border */}
+      <div className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-60" />
 
-      <div className="container mx-auto py-8 px-4 space-y-8 relative">
-        {/* Terminal-style header */}
-        <div className="flex items-center justify-between animate-slide-in-up">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <span className="text-primary text-sm font-mono animate-flicker">$</span>
-              <h1 className="text-5xl font-display font-bold tracking-wider text-primary text-glow-cyan uppercase">
-                SQUIRE
+      <div className="container mx-auto py-8 px-4 space-y-8 relative z-10">
+        {/* Royal Header Banner */}
+        <header className="animate-fade-in">
+          <div className="flex items-center justify-between">
+            <div className="space-y-3">
+              <h1 className="text-4xl md:text-5xl font-display font-bold tracking-wide text-primary text-glow-gold uppercase">
+                Squire
               </h1>
-              <span className="text-secondary text-2xl font-display animate-pulse-glow">//</span>
+              <div className="flex items-center gap-2">
+                <span className="fleur-de-lis text-sm"></span>
+                <span className="text-muted-foreground font-body text-sm italic">
+                  Quest Chamber of the Realm
+                </span>
+                <span className="fleur-de-lis text-sm"></span>
+              </div>
             </div>
-            <div className="font-mono text-sm text-muted-foreground border-l-2 border-primary pl-4 ml-1">
-              <span className="text-accent">{'>'}</span> Autonomous_Coding_Agent_Dashboard
-              <span className="animate-pulse">_</span>
+
+            <div className="flex gap-3 items-center">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={fetchData}
+                className="border-primary/30 hover:border-primary hover:bg-primary/10 transition-all duration-300"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+              <NewTaskDialog onTaskCreated={fetchData} />
             </div>
           </div>
-          <div className="flex gap-3 items-center">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={fetchData}
-              className="glow-cyan border-primary/30 hover:border-primary hover:bg-primary/10 transition-all duration-300"
-            >
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-            <NewTaskDialog onTaskCreated={fetchData} />
+
+          {/* Decorative divider */}
+          <div className="manuscript-divider mt-6">
+            <span className="fleur-de-lis text-sm opacity-60"></span>
           </div>
-        </div>
+        </header>
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="font-mono text-primary animate-pulse flex items-center gap-2">
-              <span className="text-accent">{'>'}</span>
-              Loading system data
-              <span className="animate-pulse">...</span>
+            <div className="font-body text-primary animate-torch-flicker flex items-center gap-3 text-lg italic">
+              <span className="wax-seal-warning text-xs">⌛</span>
+              Consulting the ancient scrolls...
             </div>
           </div>
         ) : (
           <>
-            <div className="animate-fade-in" style={{ animationDelay: '0.1s', animationFillMode: 'both' }}>
+            {/* Stats Section - Tavern Board Style */}
+            <section className="animate-fade-in" style={{ animationDelay: '0.1s', animationFillMode: 'both' }}>
+              <div className="flex items-center gap-3 mb-4">
+                <h2 className="text-lg font-display font-semibold text-primary uppercase tracking-wider">
+                  Realm Status
+                </h2>
+                <div className="flex-1 h-px bg-gradient-to-r from-primary/30 to-transparent" />
+              </div>
               <StatsCards stats={stats} />
-            </div>
+            </section>
 
-            <div className="animate-fade-in" style={{ animationDelay: '0.2s', animationFillMode: 'both' }}>
+            {/* Quests Section */}
+            <section className="animate-fade-in" style={{ animationDelay: '0.2s', animationFillMode: 'both' }}>
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="border border-primary/20 bg-card/50 backdrop-blur-sm">
-                  <TabsTrigger value="all" className="font-mono data-[state=active]:text-primary data-[state=active]:glow-cyan">
-                    ALL <span className="text-muted-foreground ml-1">[{tasks.length}]</span>
+                <div className="flex items-center gap-3 mb-4">
+                  <h2 className="text-lg font-display font-semibold text-primary uppercase tracking-wider">
+                    Quest Ledger
+                  </h2>
+                  <div className="flex-1 h-px bg-gradient-to-r from-primary/30 to-transparent" />
+                </div>
+
+                <TabsList className="border border-primary/20 bg-card/50 backdrop-blur-sm p-1">
+                  <TabsTrigger
+                    value="all"
+                    className="font-display text-sm data-[state=active]:text-primary data-[state=active]:bg-primary/10 uppercase tracking-wide"
+                  >
+                    All Quests <span className="text-muted-foreground ml-1 font-mono text-xs">{tasks.length}</span>
                   </TabsTrigger>
-                  <TabsTrigger value="pending" className="font-mono data-[state=active]:text-warning">
-                    PENDING <span className="text-muted-foreground ml-1">[{stats.pending}]</span>
+                  <TabsTrigger
+                    value="pending"
+                    className="font-display text-sm data-[state=active]:text-warning data-[state=active]:bg-warning/10 uppercase tracking-wide"
+                  >
+                    Awaiting <span className="text-muted-foreground ml-1 font-mono text-xs">{stats.pending}</span>
                   </TabsTrigger>
-                  <TabsTrigger value="running" className="font-mono data-[state=active]:text-warning">
-                    RUNNING <span className="text-muted-foreground ml-1">[{stats.running}]</span>
+                  <TabsTrigger
+                    value="running"
+                    className="font-display text-sm data-[state=active]:text-warning data-[state=active]:bg-warning/10 uppercase tracking-wide"
+                  >
+                    On Campaign <span className="text-muted-foreground ml-1 font-mono text-xs">{stats.running}</span>
                   </TabsTrigger>
-                  <TabsTrigger value="completed" className="font-mono data-[state=active]:text-accent">
-                    DONE <span className="text-muted-foreground ml-1">[{stats.completed}]</span>
+                  <TabsTrigger
+                    value="completed"
+                    className="font-display text-sm data-[state=active]:text-accent data-[state=active]:bg-accent/10 uppercase tracking-wide"
+                  >
+                    Victorious <span className="text-muted-foreground ml-1 font-mono text-xs">{stats.completed}</span>
                   </TabsTrigger>
-                  <TabsTrigger value="failed" className="font-mono data-[state=active]:text-destructive">
-                    FAIL <span className="text-muted-foreground ml-1">[{stats.failed}]</span>
+                  <TabsTrigger
+                    value="failed"
+                    className="font-display text-sm data-[state=active]:text-destructive data-[state=active]:bg-destructive/10 uppercase tracking-wide"
+                  >
+                    Fallen <span className="text-muted-foreground ml-1 font-mono text-xs">{stats.failed}</span>
                   </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value={activeTab} className="mt-6">
                   {filteredTasks.length === 0 ? (
-                    <div className="text-center py-12 border border-primary/20 rounded bg-card/30 backdrop-blur-sm">
-                      <div className="font-mono text-muted-foreground">
-                        <span className="text-destructive">{'> ERROR:'}</span> No tasks found
+                    <div className="text-center py-16 parchment-card rounded-lg">
+                      <div className="wax-seal mx-auto mb-4">?</div>
+                      <div className="font-display text-lg text-muted-foreground uppercase tracking-wider">
+                        No Quests Found
                       </div>
-                      <div className="font-mono text-sm text-muted-foreground mt-2">
-                        <span className="text-accent">{'>'}</span> Initialize new task to begin_
+                      <div className="font-body text-sm text-muted-foreground mt-2 italic">
+                        Issue a new decree to dispatch thy squire
                       </div>
                     </div>
                   ) : (
@@ -231,9 +268,9 @@ export default function Home() {
                       {filteredTasks.map((task, index) => (
                         <div
                           key={task.id}
-                          className="animate-slide-in-up"
+                          className="animate-unfurl"
                           style={{
-                            animationDelay: `${0.3 + (index * 0.05)}s`,
+                            animationDelay: `${0.1 + (index * 0.05)}s`,
                             animationFillMode: 'both'
                           }}
                         >
@@ -250,13 +287,14 @@ export default function Home() {
                   )}
                 </TabsContent>
               </Tabs>
-            </div>
+            </section>
           </>
         )}
       </div>
 
-      {/* Bottom corner accent */}
-      <div className="fixed bottom-4 right-4 w-24 h-24 border-r-2 border-b-2 border-secondary/30 pointer-events-none" />
+      {/* Bottom decorative corners */}
+      <div className="fixed bottom-4 right-4 w-16 h-16 border-r-2 border-b-2 border-primary/20 pointer-events-none" />
+      <div className="fixed bottom-4 left-4 w-16 h-16 border-l-2 border-b-2 border-primary/20 pointer-events-none" />
     </div>
   );
 }
