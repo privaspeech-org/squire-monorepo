@@ -224,31 +224,36 @@ export default function Home() {
                     value="all"
                     className="font-display text-sm data-[state=active]:text-primary data-[state=active]:bg-primary/10 uppercase tracking-wide"
                   >
-                    All Quests <span className="text-muted-foreground ml-1 font-mono text-xs">{tasks.length}</span>
+                    <span className="flex-1 text-left">All Quests</span>
+                    <span className="text-muted-foreground font-mono text-xs">{tasks.length}</span>
                   </TabsTrigger>
                   <TabsTrigger
                     value="pending"
                     className="font-display text-sm data-[state=active]:text-warning data-[state=active]:bg-warning/10 uppercase tracking-wide"
                   >
-                    Awaiting <span className="text-muted-foreground ml-1 font-mono text-xs">{stats.pending}</span>
+                    <span className="flex-1 text-left">Awaiting</span>
+                    <span className="text-muted-foreground font-mono text-xs">{stats.pending}</span>
                   </TabsTrigger>
                   <TabsTrigger
                     value="running"
                     className="font-display text-sm data-[state=active]:text-warning data-[state=active]:bg-warning/10 uppercase tracking-wide"
                   >
-                    On Campaign <span className="text-muted-foreground ml-1 font-mono text-xs">{stats.running}</span>
+                    <span className="flex-1 text-left">On Campaign</span>
+                    <span className="text-muted-foreground font-mono text-xs">{stats.running}</span>
                   </TabsTrigger>
                   <TabsTrigger
                     value="completed"
                     className="font-display text-sm data-[state=active]:text-accent data-[state=active]:bg-accent/10 uppercase tracking-wide"
                   >
-                    Victorious <span className="text-muted-foreground ml-1 font-mono text-xs">{stats.completed}</span>
+                    <span className="flex-1 text-left">Victorious</span>
+                    <span className="text-muted-foreground font-mono text-xs">{stats.completed}</span>
                   </TabsTrigger>
                   <TabsTrigger
                     value="failed"
                     className="font-display text-sm data-[state=active]:text-destructive data-[state=active]:bg-destructive/10 uppercase tracking-wide"
                   >
-                    Fallen <span className="text-muted-foreground ml-1 font-mono text-xs">{stats.failed}</span>
+                    <span className="flex-1 text-left">Fallen</span>
+                    <span className="text-muted-foreground font-mono text-xs">{stats.failed}</span>
                   </TabsTrigger>
                 </TabsList>
 
