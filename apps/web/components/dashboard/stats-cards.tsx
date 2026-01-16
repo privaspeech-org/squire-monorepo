@@ -18,57 +18,86 @@ interface StatsCardsProps {
 export function StatsCards({ stats }: StatsCardsProps) {
   const cards = [
     {
-      title: 'Total Tasks',
+      title: 'TOTAL_TASKS',
       value: stats.total,
       icon: Activity,
-      color: 'text-blue-600',
+      color: 'text-primary',
+      glow: 'glow-cyan',
+      border: 'border-primary/30',
+      hover: 'hover:glow-cyan',
     },
     {
-      title: 'Running',
+      title: 'RUNNING',
       value: stats.running,
       icon: Clock,
-      color: 'text-yellow-600',
+      color: 'text-warning',
+      glow: 'shadow-warning/20',
+      border: 'border-warning/30',
+      hover: 'hover:shadow-warning/20',
     },
     {
-      title: 'Completed',
+      title: 'COMPLETED',
       value: stats.completed,
       icon: CheckCircle2,
-      color: 'text-green-600',
+      color: 'text-accent',
+      glow: 'glow-green',
+      border: 'border-accent/30',
+      hover: 'hover:glow-green',
     },
     {
-      title: 'Failed',
+      title: 'FAILED',
       value: stats.failed,
       icon: XCircle,
-      color: 'text-red-600',
+      color: 'text-destructive',
+      glow: 'glow-red',
+      border: 'border-destructive/30',
+      hover: 'hover:glow-red',
     },
     {
-      title: 'Pull Requests',
+      title: 'PULL_REQUESTS',
       value: stats.withPr,
       icon: GitPullRequest,
-      color: 'text-purple-600',
+      color: 'text-secondary',
+      glow: 'glow-magenta',
+      border: 'border-secondary/30',
+      hover: 'hover:glow-magenta',
     },
     {
-      title: 'PRs Merged',
+      title: 'PR_MERGED',
       value: stats.prMerged,
       icon: GitMerge,
-      color: 'text-indigo-600',
+      color: 'text-primary',
+      glow: 'shadow-primary/20',
+      border: 'border-primary/30',
+      hover: 'hover:shadow-primary/20',
     },
   ];
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-      {cards.map((card) => {
+      {cards.map((card, index) => {
         const Icon = card.icon;
         return (
-          <Card key={card.title}>
+          <Card
+            key={card.title}
+            className={`${card.border} bg-card/50 backdrop-blur-sm border transition-all duration-300 hover:scale-105 relative overflow-hidden group ${card.glow} ${card.hover}`}
+          >
+            {/* Corner accent */}
+            <div className={`absolute top-0 right-0 w-12 h-12 ${card.color} opacity-10 blur-xl group-hover:opacity-20 transition-opacity`} />
+
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle className={`text-xs font-mono font-bold ${card.color} uppercase tracking-wider`}>
                 {card.title}
               </CardTitle>
-              <Icon className={`h-4 w-4 ${card.color}`} />
+              <Icon className={`h-5 w-5 ${card.color} animate-pulse-glow`} />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{card.value}</div>
+              <div className={`text-3xl font-display font-bold ${card.color} tabular-nums`}>
+                {card.value.toString().padStart(2, '0')}
+              </div>
+              <div className="text-xs font-mono text-muted-foreground mt-1">
+                <span className={card.color}>{'>'}</span> SYS_STAT_{index.toString().padStart(2, '0')}
+              </div>
             </CardContent>
           </Card>
         );
