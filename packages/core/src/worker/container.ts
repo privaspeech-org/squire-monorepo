@@ -104,14 +104,15 @@ async function preserveContainerLogs(containerId: string, taskId: string): Promi
 }
 
 /**
- * Monitor container execution with timeout.
- * Returns true if container completed successfully, false if timeout or error.
+ * Monitor container execution with timeout and update task status on completion.
+ * This runs in the background and updates the task file when the container exits.
  */
-async function monitorContainerWithTimeout(
+async function monitorContainerAndUpdateTask(
   containerId: string,
   taskId: string,
-  timeoutMinutes: number
-): Promise<boolean> {
+  timeoutMinutes: number,
+  preserveLogsOnFailure: boolean
+): Promise<void> {
   const timeoutMs = timeoutMinutes * 60 * 1000;
   const startTime = Date.now();
   const pollInterval = 5000; // Check every 5 seconds
@@ -122,19 +123,37 @@ async function monitorContainerWithTimeout(
     timeoutMinutes,
   });
 
+  let timedOut = false;
+
   while (Date.now() - startTime < timeoutMs) {
     try {
       const running = await isContainerRunning(containerId);
 
       if (!running) {
-        // Container stopped, check exit code
+        // Container stopped, check exit code and update task
         const exitCode = await getContainerExitCode(containerId);
-        debug('container', 'Container stopped', {
+        const success = exitCode === 0;
+
+        info('container', 'Container finished', {
           taskId,
           containerId: containerId.slice(0, 12),
           exitCode,
+          success,
         });
-        return exitCode === 0;
+
+        // Update task status
+        await updateTask(taskId, {
+          status: success ? 'completed' : 'failed',
+          completedAt: new Date().toISOString(),
+          error: success ? undefined : `Container exited with code ${exitCode}`,
+        });
+
+        // Preserve logs on failure if configured
+        if (!success && preserveLogsOnFailure) {
+          await preserveContainerLogs(containerId, taskId);
+        }
+
+        return;
       }
 
       await sleep(pollInterval);
@@ -144,11 +163,20 @@ async function monitorContainerWithTimeout(
         containerId: containerId.slice(0, 12),
         error: err instanceof Error ? err.message : String(err),
       });
-      return false;
+
+      // Update task as failed on monitoring error
+      await updateTask(taskId, {
+        status: 'failed',
+        completedAt: new Date().toISOString(),
+        error: `Monitoring error: ${err instanceof Error ? err.message : String(err)}`,
+      });
+
+      return;
     }
   }
 
   // Timeout reached
+  timedOut = true;
   warn('container', 'Container execution timeout', {
     taskId,
     containerId: containerId.slice(0, 12),
@@ -166,7 +194,17 @@ async function monitorContainerWithTimeout(
     });
   }
 
-  return false;
+  // Update task as failed due to timeout
+  await updateTask(taskId, {
+    status: 'failed',
+    completedAt: new Date().toISOString(),
+    error: `Task timed out after ${timeoutMinutes} minutes`,
+  });
+
+  // Preserve logs on timeout
+  if (preserveLogsOnFailure) {
+    await preserveContainerLogs(containerId, taskId);
+  }
 }
 
 /**
@@ -241,6 +279,7 @@ export async function startTaskContainer(options: ContainerOptions): Promise<str
         `BRANCH=${task.branch}`,
         `BASE_BRANCH=${task.baseBranch || 'main'}`,
         `GITHUB_TOKEN=${githubToken}`,
+        `GH_TOKEN=${githubToken}`,
         `MODEL=${model || 'opencode/glm-4.7-free'}`,
       ];
 
@@ -259,8 +298,6 @@ export async function startTaskContainer(options: ContainerOptions): Promise<str
           // Resource limits
           Memory: config.memoryLimitMB * 1024 * 1024, // Convert MB to bytes
           NanoCpus: config.cpuLimit * 1e9, // Convert cores to nanocpus
-          CpuQuota: config.cpuLimit * 100000,
-          CpuPeriod: 100000,
         },
         Labels: {
           'squire.task.id': task.id,
@@ -312,6 +349,21 @@ export async function startTaskContainer(options: ContainerOptions): Promise<str
           fullContainerId: containerId,
         });
       }
+
+      // Start background monitoring to update task status when container exits
+      // This runs async and doesn't block the return
+      monitorContainerAndUpdateTask(
+        containerId,
+        task.id,
+        config.timeoutMinutes,
+        config.preserveLogsOnFailure
+      ).catch(err => {
+        logError('container', 'Background monitoring failed', {
+          taskId: task.id,
+          containerId: containerId.slice(0, 12),
+          error: err instanceof Error ? err.message : String(err),
+        });
+      });
 
       return containerId;
     } catch (err) {
@@ -421,6 +473,15 @@ export async function stopContainer(containerId: string): Promise<void> {
   audit('container', 'container_stop_requested', {
     containerId: containerId.slice(0, 12),
   });
+
+  // Check if container is still running before trying to stop
+  const running = await isContainerRunning(containerId);
+  if (!running) {
+    info('container', 'Container already stopped', {
+      containerId: containerId.slice(0, 12),
+    });
+    return;
+  }
 
   info('container', 'Stopping container', {
     containerId: containerId.slice(0, 12),
