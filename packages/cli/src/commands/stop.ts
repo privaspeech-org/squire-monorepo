@@ -36,7 +36,7 @@ export const stopCommand = new Command('stop')
 
     if (!running) {
       console.log(chalk.yellow('Container already stopped'));
-      updateTask(id, { status: 'failed', error: 'Stopped by user' });
+      await updateTask(id, { status: 'failed', error: 'Stopped by user' });
       return;
     }
 
@@ -44,7 +44,7 @@ export const stopCommand = new Command('stop')
 
     try {
       await stopContainer(task.containerId);
-      updateTask(id, {
+      await updateTask(id, {
         status: 'failed',
         error: 'Stopped by user',
         completedAt: new Date().toISOString(),

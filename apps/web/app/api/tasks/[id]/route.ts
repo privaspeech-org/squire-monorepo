@@ -32,7 +32,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const success = deleteTask(id);
+    const success = await deleteTask(id);
 
     if (!success) {
       return NextResponse.json(

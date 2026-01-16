@@ -39,7 +39,7 @@ describe('Task Limits', () => {
 
     it('should not count tasks without container ID', async () => {
       const task = createTask({ repo: 'owner/repo', prompt: 'Task 1' });
-      updateTask(task.id, { status: 'running' });
+      await updateTask(task.id, { status: 'running' });
 
       await countRunningTasks();
 

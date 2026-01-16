@@ -25,7 +25,7 @@ export async function POST(
 
     await stopContainer(task.containerId);
 
-    updateTask(id, {
+    await updateTask(id, {
       status: 'failed',
       error: 'Stopped by user',
       completedAt: new Date().toISOString(),

@@ -36,13 +36,13 @@ export const statusCommand = new Command('status')
           const exitCode = await getContainerExitCode(task.containerId);
 
           if (exitCode === 0) {
-            updateTask(id, {
+            await updateTask(id, {
               status: 'completed',
               completedAt: new Date().toISOString(),
             });
             task.status = 'completed';
           } else {
-            updateTask(id, {
+            await updateTask(id, {
               status: 'failed',
               error: `Container exited with code ${exitCode}`,
               completedAt: new Date().toISOString(),

@@ -40,7 +40,7 @@ export const watchCommand = new Command('watch')
         if (!running) {
           const exitCode = await getContainerExitCode(task.containerId);
           const newStatus = exitCode === 0 ? 'completed' : 'failed';
-          updateTask(task.id, {
+          await updateTask(task.id, {
             status: newStatus,
             error: exitCode !== 0 ? `Container exited with code ${exitCode}` : undefined,
             completedAt: new Date().toISOString(),

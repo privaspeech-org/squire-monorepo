@@ -24,7 +24,7 @@ export async function POST(
     }
 
     // Update task status
-    updateTask(id, {
+    await updateTask(id, {
       status: 'running',
       startedAt: new Date().toISOString(),
     });
@@ -36,9 +36,9 @@ export async function POST(
     startTaskContainer({
       task,
       githubToken,
-    }).catch((error) => {
+    }).catch(async (error) => {
       console.error('Container start failed:', error);
-      updateTask(id, {
+      await updateTask(id, {
         status: 'failed',
         error: error.message,
         completedAt: new Date().toISOString(),
