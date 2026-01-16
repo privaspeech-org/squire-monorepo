@@ -16,6 +16,7 @@ export {
   countRunningTasks,
   canStartNewTask,
   waitForSlot,
+  syncTaskStatus,
 } from './task/limits.js';
 
 // Container management

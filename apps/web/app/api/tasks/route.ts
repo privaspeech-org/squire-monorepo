@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
-import { listTasks, createTask } from '@squire/core';
+import { listTasks, createTask, countRunningTasks } from '@squire/core';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') as 'pending' | 'running' | 'completed' | 'failed' | null;
+
+    // Sync running task statuses with container states before listing
+    // This handles cases where background monitoring was lost (e.g., server restart)
+    await countRunningTasks();
 
     const tasks = listTasks(status || undefined);
     return NextResponse.json(tasks);

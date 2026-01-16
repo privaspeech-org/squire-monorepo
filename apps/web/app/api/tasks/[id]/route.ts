@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getTask, deleteTask } from '@squire/core';
+import { getTask, deleteTask, syncTaskStatus } from '@squire/core';
 
 export async function GET(
   request: Request,
@@ -7,7 +7,9 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const task = getTask(id);
+
+    // Sync task status with container status (handles cases where monitoring was lost)
+    const task = await syncTaskStatus(id);
 
     if (!task) {
       return NextResponse.json(
