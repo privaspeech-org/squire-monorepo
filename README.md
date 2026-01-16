@@ -230,6 +230,26 @@ squire-monorepo/
 └── turbo.json
 ```
 
+## Resources
+
+### Working with Asynchronous Coding Agents
+
+> [Elite AI Assisted Coding: Working with Asynchronous Coding Agents](https://elite-ai-assisted-coding.dev/p/working-with-asynchronous-coding-agents) by Eleanor Berger
+
+**Key takeaways for Squire/Steward:**
+
+- **Complete specifications are critical** — Unlike interactive AI where you can course-correct, async agents need all context upfront. Treat failed results as "specification bugs," not agent bugs.
+
+- **The recursive AI relationship** — Use AI to write better specs for AI. Planning assistants can identify edge cases and suggest implementations that align with existing code.
+
+- **Verification matters** — Agents that skip test/lint verification before PR submission cause rework. Always include explicit verification steps in task definitions.
+
+- **Parallel processing is the win** — The real productivity gain comes from running multiple agents on different tasks simultaneously while you focus on higher-value work.
+
+- **Specification components:** Requirements + acceptance criteria + implementation plan + testing requirements + style guidelines + tool specifications.
+
+This directly informs how Steward generates tasks for Squire — the goal is well-structured work items that an agent can complete autonomously.
+
 ## License
 
 MIT
