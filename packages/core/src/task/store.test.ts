@@ -325,9 +325,8 @@ describe('Task Store', () => {
       const fileContent = readFileSync(taskFile, 'utf-8');
 
       // Should be valid JSON (not corrupted)
-      let parsed: Task;
       assert.doesNotThrow(() => {
-        parsed = JSON.parse(fileContent);
+        JSON.parse(fileContent);
       }, 'Task file should contain valid JSON');
 
       // Verify data integrity
