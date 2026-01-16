@@ -10,6 +10,7 @@ import {
   info,
   warn,
   error,
+  audit,
   type LogLevel,
 } from './logger.js';
 
@@ -179,6 +180,100 @@ describe('Logger', () => {
 
       const logged = JSON.parse(capturedOutput[0]);
       assert.deepEqual(logged.metadata, { extra: 'data' });
+    });
+  });
+
+  describe('log sanitization', () => {
+    it('should redact sensitive keys', () => {
+      info('test', 'Test message', {
+        githubToken: 'ghp_1234567890abcdefghij',
+        apiKey: 'sk-1234567890',
+        password: 'secret123',
+        normalField: 'normal value',
+      });
+
+      const logged = JSON.parse(capturedOutput[0]);
+      assert.equal(logged.metadata.githubToken, '[REDACTED]');
+      assert.equal(logged.metadata.apiKey, '[REDACTED]');
+      assert.equal(logged.metadata.password, '[REDACTED]');
+      assert.equal(logged.metadata.normalField, 'normal value');
+    });
+
+    it('should redact nested sensitive keys', () => {
+      info('test', 'Test message', {
+        config: {
+          token: 'abc123',
+          setting: 'value',
+        },
+      });
+
+      const logged = JSON.parse(capturedOutput[0]);
+      assert.equal(logged.metadata.config.token, '[REDACTED]');
+      assert.equal(logged.metadata.config.setting, 'value');
+    });
+
+    it('should handle arrays with sensitive data', () => {
+      info('test', 'Test message', {
+        items: [
+          { token: 'secret', name: 'item1' },
+          { key: 'value', name: 'item2' },
+        ],
+      });
+
+      const logged = JSON.parse(capturedOutput[0]);
+      assert.equal(logged.metadata.items[0].token, '[REDACTED]');
+      assert.equal(logged.metadata.items[0].name, 'item1');
+      assert.equal(logged.metadata.items[1].name, 'item2');
+    });
+
+    it('should sanitize long alphanumeric strings', () => {
+      info('test', 'Test message', {
+        nonSensitiveKey: 'ghp_very_long_token_that_looks_suspicious_12345678901234567890',
+      });
+
+      const logged = JSON.parse(capturedOutput[0]);
+      // Should show first and last 4 characters
+      assert.match(logged.metadata.nonSensitiveKey as string, /^ghp_\.\.\.7890$/);
+    });
+
+    it('should not sanitize short strings', () => {
+      info('test', 'Test message', {
+        shortValue: 'abc',
+      });
+
+      const logged = JSON.parse(capturedOutput[0]);
+      assert.equal(logged.metadata.shortValue, 'abc');
+    });
+  });
+
+  describe('audit logging', () => {
+    it('should log security audit events', () => {
+      audit('security', 'token_access', {
+        userId: 'user123',
+        resource: 'github_token',
+      });
+
+      const logged = JSON.parse(capturedOutput[0]);
+      assert.equal(logged.level, 'info');
+      assert.equal(logged.component, 'security');
+      assert.equal(logged.message, 'Security audit: token_access');
+      assert.equal(logged.metadata.audit, true);
+      assert.equal(logged.metadata.operation, 'token_access');
+      assert.equal(logged.metadata.userId, 'user123');
+    });
+
+    it('should be available via createLogger', () => {
+      const logger = createLogger('security');
+
+      logger.audit('config_change', {
+        field: 'maxConcurrent',
+        oldValue: 5,
+        newValue: 10,
+      });
+
+      const logged = JSON.parse(capturedOutput[0]);
+      assert.equal(logged.metadata.audit, true);
+      assert.equal(logged.metadata.operation, 'config_change');
     });
   });
 });

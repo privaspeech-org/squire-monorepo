@@ -105,6 +105,9 @@ importers:
       commander:
         specifier: ^14.0.0
         version: 14.0.2
+      zod:
+        specifier: ^4.3.5
+        version: 4.3.5
     devDependencies:
       '@types/node':
         specifier: ^22.0.0

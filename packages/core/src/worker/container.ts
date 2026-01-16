@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Task, ContainerConfig } from '../types/task.js';
 import { updateTask, getTasksDir } from '../task/store.js';
-import { debug, info, warn, error as logError } from '../utils/logger.js';
+import { debug, info, warn, error as logError, audit } from '../utils/logger.js';
 
 /**
  * Create Docker client with auto-detection for podman.
@@ -209,6 +209,17 @@ export async function startTaskContainer(options: ContainerOptions): Promise<str
 
   const retryCount = task.retryCount || 0;
 
+  // Security audit log for container start with GitHub token access
+  audit('container', 'container_start_requested', {
+    taskId: task.id,
+    repo: task.repo,
+    branch: task.branch,
+    githubTokenPresent: !!githubToken,
+    cpuLimit: config.cpuLimit,
+    memoryLimitMB: config.memoryLimitMB,
+    timeoutMinutes: config.timeoutMinutes,
+  });
+
   info('container', 'Starting task container', {
     taskId: task.id,
     repo: task.repo,
@@ -279,6 +290,14 @@ export async function startTaskContainer(options: ContainerOptions): Promise<str
         startedAt: new Date().toISOString(),
         retryCount,
         lastRetryAt: attempt > 0 ? new Date().toISOString() : undefined,
+      });
+
+      // Security audit log for successful container start
+      audit('container', 'container_started', {
+        taskId: task.id,
+        containerId: containerId.slice(0, 12),
+        image,
+        attempt: attempt + 1,
       });
 
       info('container', 'Container started', {
@@ -399,12 +418,20 @@ export async function getContainerExitCode(containerId: string): Promise<number 
  * Stop a running container.
  */
 export async function stopContainer(containerId: string): Promise<void> {
+  audit('container', 'container_stop_requested', {
+    containerId: containerId.slice(0, 12),
+  });
+
   info('container', 'Stopping container', {
     containerId: containerId.slice(0, 12),
   });
 
   const container = docker.getContainer(containerId);
   await container.stop();
+
+  audit('container', 'container_stopped', {
+    containerId: containerId.slice(0, 12),
+  });
 
   info('container', 'Container stopped', {
     containerId: containerId.slice(0, 12),
@@ -432,6 +459,11 @@ export async function removeContainer(
   try {
     const container = docker.getContainer(containerId);
     await container.remove({ force: true });
+
+    audit('container', 'container_removed', {
+      containerId: containerId.slice(0, 12),
+      taskId: options?.taskId,
+    });
 
     debug('container', 'Container removed', {
       containerId: containerId.slice(0, 12),

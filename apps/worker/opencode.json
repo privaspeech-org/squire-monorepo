@@ -1,4 +1,63 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "permission": "allow"
+  "permission": {
+    "bash": {
+      "allow": [
+        "git",
+        "gh",
+        "node",
+        "pnpm",
+        "npm",
+        "npx",
+        "cat",
+        "ls",
+        "mkdir",
+        "rm",
+        "cp",
+        "mv",
+        "chmod",
+        "grep",
+        "find",
+        "sed",
+        "awk"
+      ],
+      "deny": [
+        "curl",
+        "wget",
+        "nc",
+        "netcat",
+        "telnet"
+      ]
+    },
+    "filesystem": {
+      "allow_read": [
+        "${WORKSPACE}",
+        "/tmp"
+      ],
+      "allow_write": [
+        "${WORKSPACE}",
+        "/tmp"
+      ],
+      "deny_read": [
+        "/root/.ssh",
+        "/root/.config",
+        "/etc/passwd",
+        "/etc/shadow"
+      ],
+      "deny_write": [
+        "/root/.ssh",
+        "/root/.config",
+        "/etc"
+      ]
+    },
+    "network": {
+      "allow_domains": [
+        "github.com",
+        "api.github.com",
+        "*.githubusercontent.com",
+        "registry.npmjs.org",
+        "*.opencode.ai"
+      ]
+    }
+  }
 }
