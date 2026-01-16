@@ -4,11 +4,14 @@
  * Provides a unified interface for creating and accessing worker backends.
  * The backend is selected based on the SQUIRE_BACKEND environment variable
  * or explicit configuration.
+ *
+ * IMPORTANT: Backend implementations are loaded lazily via dynamic import
+ * to avoid pulling in dockerode/kubernetes-client-node at module load time.
+ * This allows the code to be bundled in environments where these dependencies
+ * aren't available (e.g., Next.js build).
  */
 
 import type { WorkerBackend, BackendConfig, BackendType } from './types.js';
-import { DockerBackend, createDockerBackend } from './docker.js';
-import { KubernetesBackend, createKubernetesBackend } from './kubernetes.js';
 import { debug, info } from '../utils/logger.js';
 
 // Singleton backend instance
@@ -40,21 +43,26 @@ function detectBackendType(): BackendType {
 
 /**
  * Create a worker backend based on configuration.
+ * Uses dynamic imports to avoid loading backend dependencies at module load time.
  *
  * @param config - Backend configuration (optional, will use env vars if not provided)
  * @returns A WorkerBackend implementation
  */
-export function createBackend(config?: BackendConfig): WorkerBackend {
+export async function createBackend(config?: BackendConfig): Promise<WorkerBackend> {
   const backendType = config?.type || detectBackendType();
 
   info('backend', 'Creating worker backend', { type: backendType });
 
   switch (backendType) {
-    case 'kubernetes':
+    case 'kubernetes': {
+      const { createKubernetesBackend } = await import('./kubernetes.js');
       return createKubernetesBackend(config?.kubernetes);
+    }
     case 'docker':
-    default:
+    default: {
+      const { createDockerBackend } = await import('./docker.js');
       return createDockerBackend(config?.docker);
+    }
   }
 }
 
@@ -65,9 +73,9 @@ export function createBackend(config?: BackendConfig): WorkerBackend {
  * @param config - Optional configuration to use when creating the backend
  * @returns The current WorkerBackend instance
  */
-export function getBackend(config?: BackendConfig): WorkerBackend {
+export async function getBackend(config?: BackendConfig): Promise<WorkerBackend> {
   if (!currentBackend) {
-    currentBackend = createBackend(config);
+    currentBackend = await createBackend(config);
   }
   return currentBackend;
 }
@@ -95,13 +103,13 @@ export function resetBackend(): void {
 /**
  * Check if a backend is Docker-based.
  */
-export function isDockerBackend(backend: WorkerBackend): backend is DockerBackend {
+export function isDockerBackend(backend: WorkerBackend): boolean {
   return backend.name === 'docker';
 }
 
 /**
  * Check if a backend is Kubernetes-based.
  */
-export function isKubernetesBackend(backend: WorkerBackend): backend is KubernetesBackend {
+export function isKubernetesBackend(backend: WorkerBackend): boolean {
   return backend.name === 'kubernetes';
 }

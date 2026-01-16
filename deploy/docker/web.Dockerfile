@@ -35,7 +35,7 @@ COPY --from=deps /app/packages/core/node_modules ./packages/core/node_modules
 COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
 
 # Copy source files
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.base.json ./
 COPY packages/core ./packages/core
 COPY apps/web ./apps/web
 
@@ -63,7 +63,9 @@ ENV HOSTNAME=0.0.0.0
 # Copy standalone build
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/.next/static
-COPY --from=builder --chown=nextjs:nodejs /app/apps/web/public ./apps/web/public
+
+# Copy public directory if it exists (create empty dir if not)
+RUN mkdir -p ./apps/web/public
 
 # Create tasks directory (will be mounted as volume in K8s)
 RUN mkdir -p /data/tasks && chown -R nextjs:nodejs /data

@@ -31,6 +31,10 @@ export {
 } from './task/limits.js';
 
 // Worker backend management
+// NOTE: Backend implementations (DockerBackend, KubernetesBackend) are NOT exported
+// directly to avoid pulling in dockerode/@kubernetes/client-node at module load time.
+// Use createBackend() or getBackend() which load implementations lazily.
+// For direct access, import from './worker/docker.js' or './worker/kubernetes.js'.
 export {
   createBackend,
   getBackend,
@@ -39,9 +43,6 @@ export {
   isDockerBackend,
   isKubernetesBackend,
 } from './worker/backend.js';
-
-export { DockerBackend, createDockerBackend } from './worker/docker.js';
-export { KubernetesBackend, createKubernetesBackend } from './worker/kubernetes.js';
 
 // Container management (backward compatibility)
 export {

@@ -25,7 +25,7 @@ export interface ContainerOptions {
  * @deprecated Use getBackend().startTask() for new code
  */
 export async function startTaskContainer(options: ContainerOptions): Promise<string> {
-  const backend = getBackend();
+  const backend = await getBackend();
   return backend.startTask(options);
 }
 
@@ -36,7 +36,7 @@ export async function startTaskContainer(options: ContainerOptions): Promise<str
  * @deprecated Use getBackend().getTaskLogs() for new code
  */
 export async function getContainerLogs(containerId: string, tail?: number): Promise<string> {
-  const backend = getBackend();
+  const backend = await getBackend();
   return backend.getTaskLogs(containerId, tail);
 }
 
@@ -47,7 +47,7 @@ export async function getContainerLogs(containerId: string, tail?: number): Prom
  * @deprecated Use getBackend().isTaskRunning() for new code
  */
 export async function isContainerRunning(containerId: string): Promise<boolean> {
-  const backend = getBackend();
+  const backend = await getBackend();
   return backend.isTaskRunning(containerId);
 }
 
@@ -58,7 +58,7 @@ export async function isContainerRunning(containerId: string): Promise<boolean> 
  * @deprecated Use getBackend().getTaskExitCode() for new code
  */
 export async function getContainerExitCode(containerId: string): Promise<number | null> {
-  const backend = getBackend();
+  const backend = await getBackend();
   return backend.getTaskExitCode(containerId);
 }
 
@@ -69,7 +69,7 @@ export async function getContainerExitCode(containerId: string): Promise<number 
  * @deprecated Use getBackend().stopTask() for new code
  */
 export async function stopContainer(containerId: string): Promise<void> {
-  const backend = getBackend();
+  const backend = await getBackend();
   return backend.stopTask(containerId);
 }
 
@@ -83,7 +83,7 @@ export async function removeContainer(
   containerId: string,
   _options?: { preserveLogs?: boolean; taskId?: string }
 ): Promise<void> {
-  const backend = getBackend();
+  const backend = await getBackend();
   return backend.removeTask(containerId);
 }
 
@@ -99,7 +99,7 @@ export async function listSquireContainers(): Promise<Array<{
   State: string;
   Created: number;
 }>> {
-  const backend = getBackend();
+  const backend = await getBackend();
   const tasks = await backend.listTasks();
 
   // Convert to Docker-like format for backward compatibility

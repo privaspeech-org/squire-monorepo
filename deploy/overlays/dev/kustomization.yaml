@@ -19,7 +19,7 @@ patches:
         path: /metadata/name
         value: squire-dev
 
-  # Reduce resource requests for dev
+  # Reduce resource requests for dev and use local images
   - target:
       kind: Deployment
       name: squire-steward
@@ -36,6 +36,9 @@ patches:
       - op: replace
         path: /spec/template/spec/containers/0/resources/limits/memory
         value: "256Mi"
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: Never
 
   - target:
       kind: Deployment
@@ -56,8 +59,11 @@ patches:
       - op: replace
         path: /spec/template/spec/containers/0/resources/limits/memory
         value: "256Mi"
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: Never
 
-  # Use local storage class for dev
+  # Use local storage class for dev (ReadWriteOnce for kind compatibility)
   - target:
       kind: PersistentVolumeClaim
       name: squire-tasks
@@ -65,6 +71,10 @@ patches:
       - op: add
         path: /spec/storageClassName
         value: standard
+      - op: replace
+        path: /spec/accessModes
+        value:
+          - ReadWriteOnce
 
   # Disable ingress TLS for dev
   - target:
@@ -75,13 +85,16 @@ patches:
         path: /spec/rules/0/host
         value: squire.local
 
-# Image tags for dev (use latest for faster iteration)
+# Image tags for dev (use local images)
 images:
   - name: ghcr.io/privaspeech-org/squire-web
+    newName: localhost/squire-web
     newTag: latest
   - name: ghcr.io/privaspeech-org/squire-steward
+    newName: localhost/squire-steward
     newTag: latest
   - name: ghcr.io/privaspeech-org/squire-worker
+    newName: localhost/squire-worker
     newTag: latest
 
 # Labels for dev environment

@@ -35,7 +35,7 @@ COPY --from=deps /app/packages/core/node_modules ./packages/core/node_modules
 COPY --from=deps /app/packages/steward/node_modules ./packages/steward/node_modules
 
 # Copy source files
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.base.json ./
 COPY packages/core ./packages/core
 COPY packages/steward ./packages/steward
 
