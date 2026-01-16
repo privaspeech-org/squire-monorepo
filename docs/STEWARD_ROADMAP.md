@@ -274,4 +274,171 @@ Maintain vector embeddings of the codebase:
 
 ---
 
+## Deeper Thinking: What Could Steward Become?
+
+### The Tech Lead Mental Model
+
+Think of Steward as a **tech lead** managing a team of junior developers (Squire workers). What makes a great tech lead?
+
+1. **Context is King** — They don't just say "fix the bug." They explain the history, the constraints, what was tried before, who cares about this, and why it matters.
+
+2. **Right Task, Right Person** — They match task complexity to capability. Simple formatting? Junior dev. Complex refactor? Senior dev or pair programming. Steward should route tasks to appropriate models/configurations.
+
+3. **Anticipate Questions** — A good tech lead answers questions before they're asked. "You'll probably wonder about X — here's why we do it that way." Steward's specs should preempt confusion.
+
+4. **Review With Purpose** — They don't just approve/reject. They teach. Steward should extract lessons from every PR review and feed them forward.
+
+5. **Shield From Noise** — They filter signals so the team focuses on what matters. Steward should prioritize ruthlessly, not just pass through every issue.
+
+### The Specification Bug Hypothesis
+
+The article's key insight: **failures are specification bugs, not agent bugs.**
+
+What if Steward could close the loop automatically?
+
+```
+Task fails → Analyze why → Identify spec gap → Rewrite spec → Retry
+```
+
+Example:
+- Task: "Add logging to user service"
+- Failure: Build error, missing import
+- Analysis: Spec didn't mention the logging library to use
+- Rewritten spec: "Add logging using pino (already in dependencies) to user service..."
+- Retry with enriched spec
+
+This turns Steward into a **self-healing system** that gets better with each failure.
+
+### Proactive vs Reactive
+
+Current Steward: Waits for signals (CI fails, issue opened, PR needs review).
+
+Future Steward: **Proactively improves the codebase.**
+
+Ideas:
+- **Dependency Freshness** — "lodash is 3 major versions behind, security advisory exists" → task to upgrade
+- **Test Coverage Gaps** — "src/auth/ has 20% coverage, rest of codebase is 80%" → task to add tests
+- **Code Health Metrics** — "This file has 15 functions over 50 lines" → task to refactor
+- **Documentation Drift** — "README mentions API v1, code is on v3" → task to update docs
+- **Dead Code** — "This function has no callers" → task to remove or investigate
+
+Steward becomes a **continuous improvement engine**, not just a task dispatcher.
+
+### Speculative Execution
+
+For hard problems, don't bet on one approach:
+
+```typescript
+interface SpeculativeTask {
+  goal: string;
+  approaches: Array<{
+    strategy: string;
+    task: Task;
+  }>;
+  selection: 'first_success' | 'best_result' | 'human_choice';
+}
+```
+
+Example: "Improve API response time"
+- Approach A: Add caching layer
+- Approach B: Optimize database queries
+- Approach C: Add pagination
+
+Run all three in parallel, take the first that succeeds (or let human pick the best PR).
+
+More expensive, but higher success rate for ambiguous goals.
+
+### Institutional Memory
+
+Over time, Steward should build **knowledge about each repo**:
+
+```typescript
+interface RepoKnowledge {
+  // Learned conventions
+  conventions: {
+    "Always use named exports": { confidence: 0.95, source: "PR review feedback" },
+    "Tests go in __tests__ folders": { confidence: 0.99, source: "pattern detection" },
+  };
+  
+  // Historical context
+  decisions: {
+    "Why we use date-fns not moment": "Bundle size, see PR #234",
+    "Why auth is in a separate service": "Scaling requirements, see ADR-005",
+  };
+  
+  // People knowledge
+  ownership: {
+    "packages/auth/*": ["alice", "bob"],
+    "packages/api/*": ["charlie"],
+  };
+  
+  // Failure patterns
+  commonMistakes: [
+    { pattern: "Forgetting to update OpenAPI spec", frequency: 5 },
+    { pattern: "Missing migration for schema changes", frequency: 3 },
+  ];
+}
+```
+
+This knowledge persists across sessions and improves every task.
+
+### Economic Thinking
+
+Not all tasks are equal. Optimize for **value delivered per dollar spent.**
+
+```typescript
+interface TaskEconomics {
+  estimatedCost: number;       // Model tokens + compute
+  estimatedValue: number;      // Business impact
+  successProbability: number;  // Based on spec quality + history
+  expectedValue: number;       // value * probability - cost
+}
+```
+
+Prioritize high expected-value tasks. Reject or defer negative-EV tasks.
+
+For expensive tasks (complex, high-risk), require higher confidence specs.
+
+### The "Explain It To Me" Test
+
+Before dispatching a task, Steward could ask itself:
+
+> "If I were a competent developer who just joined this project, would this task spec give me everything I need to succeed?"
+
+If no → enrich the spec.
+If still no → flag for human input.
+
+This is essentially what the confidence scoring does, but framed as an empathy check.
+
+### Wild Ideas (Probably Crazy)
+
+1. **Agent Self-Review** — Before submitting PR, agent reviews its own code as if it were a different person. Catches obvious mistakes.
+
+2. **Adversarial Testing** — Spawn a second agent whose job is to find bugs in the first agent's PR. Red team / blue team.
+
+3. **Commit-by-Commit** — Instead of one big PR, agent commits incrementally and Steward can intervene mid-task if it's going off track.
+
+4. **Natural Language Diffs** — Show humans "what changed" in plain English, not just code diffs. Easier to review.
+
+5. **Repo Simulation** — Before running a task for real, simulate it on a fork. Check if it would even build. Fail fast.
+
+6. **Cross-Repo Learning** — If agent learns something in repo A, apply that knowledge to similar repos B and C.
+
+---
+
+## Philosophy
+
+The goal isn't to replace developers. It's to **amplify them**.
+
+A great Steward:
+- Handles the tedious stuff so humans focus on the interesting stuff
+- Makes it easy to delegate without micromanaging
+- Learns and improves without being told
+- Fails gracefully and learns from mistakes
+- Knows when to ask for help
+
+We're not building an AI that codes. We're building an AI that **helps teams ship better software faster**.
+
+---
+
 *Last updated: 2026-01-16*
