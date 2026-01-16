@@ -222,7 +222,15 @@ export default function TaskDetailPage({
             <Button variant="outline" size="icon" onClick={fetchTask} className="border-primary/30 hover:border-primary">
               <RefreshCw className="h-4 w-4" />
             </Button>
-            {task.prUrl && (
+            {(task.status === 'completed' || task.status === 'failed') && task.prUrl && (
+              <Button asChild className="font-display uppercase tracking-wider text-xs">
+                <Link href={task.prUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2">
+                  <Github className="h-4 w-4" />
+                  <span>View Pull Request</span>
+                </Link>
+              </Button>
+            )}
+            {!(task.status === 'completed' || task.status === 'failed') && task.prUrl && (
               <Button variant="outline" size="icon" asChild className="border-primary/30 hover:border-primary">
                 <Link href={task.prUrl} target="_blank" rel="noopener noreferrer">
                   <Github className="h-4 w-4" />

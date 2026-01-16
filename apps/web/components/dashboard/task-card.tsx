@@ -163,15 +163,15 @@ export function TaskCard({ task, onStart, onStop, onRetry, onDelete }: TaskCardP
             Chronicles
           </Link>
         </Button>
-        {task.prUrl && (
+        {(task.status === 'completed' || task.status === 'failed') && task.prUrl && (
           <Button
             size="sm"
-            variant="outline"
             asChild
-            className="font-display text-xs border-primary/30 hover:border-primary hover:bg-primary/10"
+            className="font-display text-xs bg-primary text-primary-foreground hover:bg-primary/90 uppercase tracking-wider"
           >
-            <Link href={task.prUrl} target="_blank" rel="noopener noreferrer">
+            <Link href={task.prUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1">
               <Github className="h-3.5 w-3.5" />
+              <span>View PR</span>
             </Link>
           </Button>
         )}
