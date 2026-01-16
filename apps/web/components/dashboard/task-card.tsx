@@ -84,9 +84,8 @@ export function TaskCard({ task, onStart, onStop, onRetry, onDelete }: TaskCardP
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             {/* Repository as Quest Name */}
-            <CardTitle className="text-base font-display uppercase tracking-wider text-primary mb-2 truncate flex items-center gap-2">
-              <span className="illuminated text-lg">{(task.repo.split('/').pop() || task.repo).charAt(0)}</span>
-              <span>{(task.repo.split('/').pop() || task.repo).slice(1)}</span>
+            <CardTitle className="text-base font-display uppercase tracking-wider text-primary mb-2 truncate">
+              {task.repo.split('/').pop() || task.repo}
             </CardTitle>
             {/* Quest Description */}
             <CardDescription className="line-clamp-2 font-body text-sm text-muted-foreground italic">

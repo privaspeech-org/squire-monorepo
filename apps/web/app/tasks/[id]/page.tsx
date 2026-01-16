@@ -256,9 +256,8 @@ export default function TaskDetailPage({
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="space-y-2">
-                  <CardTitle className="text-xl font-display uppercase tracking-wider text-primary flex items-center gap-2">
-                    <span className="illuminated text-2xl">{(task.repo.split('/').pop() || task.repo).charAt(0)}</span>
-                    <span>{(task.repo.split('/').pop() || task.repo).slice(1)}</span>
+                  <CardTitle className="text-xl font-display uppercase tracking-wider text-primary">
+                    {task.repo.split('/').pop() || task.repo}
                   </CardTitle>
                   <CardDescription className="font-body text-base text-muted-foreground italic">
                     &ldquo;{task.prompt}&rdquo;
@@ -347,7 +346,7 @@ export default function TaskDetailPage({
             <CardContent>
               <div className="space-y-4">
                 <div className="flex items-start gap-3">
-                  <div className="wax-seal-warning w-7 h-7 text-[8px]">
+                  <div className="wax-seal-warning w-7 h-7 text-[8px] flex items-center justify-center">
                     <Calendar className="h-3 w-3" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -364,7 +363,7 @@ export default function TaskDetailPage({
                   <>
                     <Separator className="bg-primary/20" />
                     <div className="flex items-start gap-3">
-                      <div className="wax-seal-warning w-7 h-7 text-[8px]">
+                      <div className="wax-seal-warning w-7 h-7 text-[8px] flex items-center justify-center">
                         <Sword className="h-3 w-3" />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -383,7 +382,7 @@ export default function TaskDetailPage({
                   <>
                     <Separator className="bg-primary/20" />
                     <div className="flex items-start gap-3">
-                      <div className="wax-seal-success w-7 h-7 text-[8px]">
+                      <div className="wax-seal-success w-7 h-7 text-[8px] flex items-center justify-center">
                         <Shield className="h-3 w-3" />
                       </div>
                       <div className="flex-1 min-w-0">

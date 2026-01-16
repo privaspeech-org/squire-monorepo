@@ -47,6 +47,19 @@ export function NewTaskDialog({ onTaskCreated }: NewTaskDialogProps) {
       });
 
       if (response.ok) {
+        const task = await response.json();
+
+        // Auto-start the task after creation
+        const startResponse = await fetch(`/api/tasks/${task.id}/start`, {
+          method: 'POST',
+        });
+
+        if (!startResponse.ok) {
+          const startError = await startResponse.json();
+          console.error('Failed to auto-start task:', startError.error);
+          // Task was created but not started - still close dialog and refresh
+        }
+
         setOpen(false);
         setFormData({ repo: '', prompt: '', branch: '', baseBranch: '' });
         onTaskCreated?.();
