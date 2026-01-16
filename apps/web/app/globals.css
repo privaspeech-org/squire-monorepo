@@ -73,9 +73,9 @@
   }
 }
 
-:root {
+ :root {
   /* Cyberpunk Neon Color Palette */
-  --background: 220 20% 5%;
+  --background: 120 20% 5%;
   --foreground: 180 100% 95%;
   --card: 220 20% 8%;
   --card-foreground: 180 100% 95%;
@@ -103,8 +103,8 @@
   --font-jetbrains-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
 }
 
-.dark {
-  --background: 220 20% 5%;
+ .dark {
+  --background: 120 20% 5%;
   --foreground: 180 100% 95%;
   --card: 220 20% 8%;
   --card-foreground: 180 100% 95%;
