@@ -74,7 +74,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
         return (
           <Card
             key={card.title}
-            className={`${card.border} bg-card/50 backdrop-blur-sm border hover:${card.glow} transition-all duration-300 hover:scale-105 relative overflow-hidden group`}
+            className={`${card.border} bg-card/50 backdrop-blur-sm border transition-all duration-300 hover:scale-105 relative overflow-hidden group ${card.glow}`}
           >
             {/* Corner accent */}
             <div className={`absolute top-0 right-0 w-12 h-12 ${card.color} opacity-10 blur-xl group-hover:opacity-20 transition-opacity`} />
