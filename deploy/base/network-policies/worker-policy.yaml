@@ -1,0 +1,59 @@
+# Worker Network Policy
+#
+# Workers run as Jobs and need access to:
+# - DNS for name resolution
+# - GitHub (clone repos, push branches, create PRs)
+# - LLM APIs (OpenAI, Anthropic, etc.)
+# - Package registries (npm, pypi, etc.)
+#
+# Workers don't receive ingress traffic
+#
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-worker
+  namespace: squire
+  labels:
+    app.kubernetes.io/name: squire
+    app.kubernetes.io/component: network-policy
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: squire-worker
+  policyTypes:
+    - Egress
+
+  egress:
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+
+    # Allow HTTPS (GitHub, LLM APIs, package registries)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: TCP
+          port: 443
+
+    # Allow Git over SSH (for SSH-based cloning)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: TCP
+          port: 22
+
+    # Allow HTTP (some package registries use HTTP)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: TCP
+          port: 80

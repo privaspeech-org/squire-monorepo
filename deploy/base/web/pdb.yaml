@@ -1,0 +1,24 @@
+# Pod Disruption Budget for Web Dashboard
+#
+# Ensures at least one web pod remains available during voluntary disruptions
+# (node drains, cluster upgrades, etc.)
+#
+# This works with HPA to ensure service availability during scaling and maintenance.
+#
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: squire-web-pdb
+  namespace: squire
+  labels:
+    app.kubernetes.io/name: squire-web
+    app.kubernetes.io/component: web
+    app.kubernetes.io/part-of: squire
+spec:
+  # Ensure at least 1 pod is always available
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: squire-web
+      app.kubernetes.io/component: web

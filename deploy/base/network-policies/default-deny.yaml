@@ -1,0 +1,23 @@
+# Default Deny Network Policy
+#
+# Denies all ingress and egress traffic by default.
+# Specific policies below allow required traffic.
+#
+# Note: This requires a CNI that supports NetworkPolicy (Calico, Cilium, etc.)
+# Kind uses kindnet which does NOT support NetworkPolicy by default.
+# For local testing, use Calico: https://kind.sigs.k8s.io/docs/user/configuration/#network-policies
+#
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: squire
+  labels:
+    app.kubernetes.io/name: squire
+    app.kubernetes.io/component: network-policy
+spec:
+  podSelector: {}  # Apply to all pods in namespace
+  policyTypes:
+    - Ingress
+    - Egress

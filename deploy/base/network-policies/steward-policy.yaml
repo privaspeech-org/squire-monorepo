@@ -1,0 +1,55 @@
+# Steward Network Policy
+#
+# Allows:
+# - Egress: DNS, K8s API (for Job management), GitHub API, LLM APIs
+#
+# Steward doesn't receive ingress traffic - it only creates Jobs
+#
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-steward
+  namespace: squire
+  labels:
+    app.kubernetes.io/name: squire
+    app.kubernetes.io/component: network-policy
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: squire-steward
+  policyTypes:
+    - Egress
+
+  egress:
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+
+    # Allow K8s API access (for Job management)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 6443
+
+    # Allow GitHub API (api.github.com)
+    # Note: GitHub IPs change frequently, so we allow all HTTPS
+    # For tighter security, use an egress proxy or service mesh
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: TCP
+          port: 443
+
+    # Allow LLM API endpoints (OpenAI, Anthropic, etc.)
+    # These also use HTTPS, covered by the rule above

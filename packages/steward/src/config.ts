@@ -18,8 +18,10 @@ export interface StewardConfig {
     backend: 'squire' | 'github-issues';
     squire?: {
       default_repo: string;
+      repos?: string[];  // Additional repos to orchestrate (uses signals repos if not set)
       model: string;
       max_concurrent: number;
+      max_per_repo?: number;  // Max concurrent tasks per repo (default: no limit)
     };
   };
   auto_merge?: {
@@ -40,13 +42,28 @@ export interface StewardConfig {
   };
 }
 
-export async function loadConfig(): Promise<StewardConfig> {
-  const configPath = './steward.yaml';
+export function resolveConfigPath(): string {
+  const configPaths = [
+    process.env.STEWARD_CONFIG_PATH,
+    '/config/steward.yaml',  // K8s ConfigMap mount
+    './steward.yaml',         // Local development
+  ].filter((p): p is string => Boolean(p));
 
-  if (!existsSync(configPath)) {
-    throw new Error('steward.yaml not found. Run `steward init` first.');
+  for (const configPath of configPaths) {
+    if (existsSync(configPath)) {
+      return configPath;
+    }
   }
 
+  throw new Error(
+    'steward.yaml not found. Searched paths:\n' +
+    configPaths.map(p => `  - ${p}`).join('\n') +
+    '\nRun `steward init` or set STEWARD_CONFIG_PATH environment variable.'
+  );
+}
+
+export async function loadConfig(): Promise<StewardConfig> {
+  const configPath = resolveConfigPath();
   const content = readFileSync(configPath, 'utf-8');
   return parse(content) as StewardConfig;
 }

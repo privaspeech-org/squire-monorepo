@@ -34,6 +34,8 @@ spec:
           env:
             - name: NODE_ENV
               value: "production"
+            - name: STEWARD_CONFIG_PATH
+              value: "/config/steward.yaml"
             - name: SQUIRE_BACKEND
               value: "kubernetes"
             - name: SQUIRE_NAMESPACE

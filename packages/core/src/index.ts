@@ -30,6 +30,15 @@ export {
   syncTaskStatus,
 } from './task/limits.js';
 
+export {
+  reconcileTasks,
+  needsReconciliation,
+  reconcileOnce,
+  resetReconcileFlag,
+  type ReconcileResult,
+  type ReconcileOptions,
+} from './task/reconcile.js';
+
 // Worker backend management
 // NOTE: Backend implementations (DockerBackend, KubernetesBackend) are NOT exported
 // directly to avoid pulling in dockerode/@kubernetes/client-node at module load time.
@@ -67,6 +76,29 @@ export {
   setVerbose,
   setQuiet,
   getLogLevel,
+  withTraceContext,
+  withTraceContextAsync,
+  getTraceContext,
+  getTraceId,
+  generateTraceId,
   type LogLevel,
   type LogEntry,
+  type TraceContext,
 } from './utils/logger.js';
+
+// Metrics utilities
+export {
+  registerCounter,
+  registerGauge,
+  registerHistogram,
+  incCounter,
+  setGauge,
+  incGauge,
+  decGauge,
+  observeHistogram,
+  getCounter,
+  getGauge,
+  exportMetrics,
+  resetMetrics,
+  type MetricLabels,
+} from './utils/metrics.js';

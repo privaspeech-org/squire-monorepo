@@ -8,44 +8,57 @@ metadata:
     app.kubernetes.io/component: config
 data:
   steward.yaml: |
-    # Steward configuration
-    # This is a template - customize in overlays
+    # Steward Configuration
+    # Customize this file for your environment
 
-    # Default repository for tasks (override per environment)
-    default_repo: ""
+    # Goals - What the steward should work toward
+    goals:
+      - text: "Keep CI green and fix failing builds"
+      # - path: "/config/goals.md"  # Can also load from file
+
+    # Signals - Where to collect work items from
+    signals:
+      github:
+        # Repositories to monitor (multi-repo support)
+        repos:
+          - "your-org/main-repo"
+          # - "your-org/frontend"
+          # - "your-org/api"
+        # What to watch for
+        watch:
+          - "failed_ci"
+          - "open_prs"
+          # - "issues"
+          # - "greptile_reviews"
+      # files:
+      #   - "./signals/manual-tasks.md"
 
     # Execution configuration
     execution:
-      backend: "squire"  # Use Squire's internal task system
-      max_concurrent: 3
-      worker_image: "ghcr.io/privaspeech-org/squire-worker:latest"
+      backend: "squire"
+      squire:
+        # Default repo for tasks without explicit repo
+        default_repo: "your-org/main-repo"
+        # Optional: Additional repos (can also use signals.github.repos)
+        # repos:
+        #   - "your-org/frontend"
+        #   - "your-org/api"
+        model: "opencode/glm-4.7-free"
+        max_concurrent: 5
+        # Optional: Limit concurrent tasks per repo
+        # max_per_repo: 2
 
     # LLM configuration for task generation
     llm:
-      model: "anthropic/claude-sonnet-4-20250514"
-      base_url: ""  # Set via AI_GATEWAY_API_KEY secret
+      model: "anthropic:claude-sonnet-4-20250514"
 
-    # Signals configuration
-    signals:
-      # GitHub polling (requires GITHUB_TOKEN)
-      github:
-        enabled: true
-        poll_interval_seconds: 300  # 5 minutes
+    # Auto-merge configuration (optional)
+    # auto_merge:
+    #   enabled: false
+    #   min_confidence: 5
 
-        # Monitor failed CI checks
-        failed_ci:
-          enabled: true
-          auto_fix: true
-
-        # Monitor open PRs for stale reviews
-        stale_prs:
-          enabled: false
-          days_threshold: 7
-
-    # Goals to pursue
-    goals: []
-    # Example goals (customize per environment):
-    # - type: "maintain_test_coverage"
-    #   target: 80
-    # - type: "fix_security_vulnerabilities"
-    #   severity: "high"
+    # Schedule configuration
+    schedule:
+      interval: "30m"
+      quiet_hours: "22:00-08:00"
+      timezone: "UTC"

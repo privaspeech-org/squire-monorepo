@@ -1,0 +1,120 @@
+# HashiCorp Vault SecretStore Example
+#
+# This file shows how to configure external-secrets to use HashiCorp Vault.
+#
+# Prerequisites:
+# 1. Install and configure Vault
+# 2. Enable Kubernetes auth method in Vault
+# 3. Create a policy and role for Squire
+#
+# Vault structure (KV v2):
+#   secret/data/squire/github-token: {"token": "ghp_..."}
+#   secret/data/squire/llm-api-key: {"key": "sk-..."}
+#
+# Usage:
+#   kubectl apply -f vault-store.yaml
+#
+---
+# Option 1: Kubernetes Auth (Recommended)
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: squire-secret-store
+  namespace: squire
+spec:
+  provider:
+    vault:
+      server: "https://vault.example.com"  # Replace with your Vault address
+      path: "secret"  # KV v2 secrets engine path
+      version: "v2"   # KV version
+      auth:
+        kubernetes:
+          mountPath: "kubernetes"  # Vault auth mount path
+          role: "squire"           # Vault role name
+          serviceAccountRef:
+            name: squire-external-secrets
+---
+# Service account for Vault auth
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: squire-external-secrets
+  namespace: squire
+---
+# Option 2: Using AppRole Auth
+# Uncomment if using AppRole instead of Kubernetes auth
+#
+# First create the credentials secret:
+#   kubectl create secret generic vault-approle \
+#     --from-literal=role-id=... \
+#     --from-literal=secret-id=... \
+#     -n squire
+#
+# apiVersion: external-secrets.io/v1beta1
+# kind: SecretStore
+# metadata:
+#   name: squire-secret-store
+#   namespace: squire
+# spec:
+#   provider:
+#     vault:
+#       server: "https://vault.example.com"
+#       path: "secret"
+#       version: "v2"
+#       auth:
+#         appRole:
+#           path: "approle"
+#           roleId: "squire-role-id"
+#           secretRef:
+#             name: vault-approle
+#             key: secret-id
+---
+# Option 3: Using Token Auth (Development only)
+# DO NOT use in production!
+#
+# kubectl create secret generic vault-token \
+#   --from-literal=token=hvs.xxx \
+#   -n squire
+#
+# apiVersion: external-secrets.io/v1beta1
+# kind: SecretStore
+# metadata:
+#   name: squire-secret-store
+#   namespace: squire
+# spec:
+#   provider:
+#     vault:
+#       server: "https://vault.example.com"
+#       path: "secret"
+#       version: "v2"
+#       auth:
+#         tokenSecretRef:
+#           name: vault-token
+#           key: token
+---
+# Vault Configuration Commands:
+#
+# 1. Enable Kubernetes auth:
+#    vault auth enable kubernetes
+#
+# 2. Configure Kubernetes auth:
+#    vault write auth/kubernetes/config \
+#      kubernetes_host="https://$KUBERNETES_PORT_443_TCP_ADDR:443"
+#
+# 3. Create a policy:
+#    vault policy write squire - <<EOF
+#    path "secret/data/squire/*" {
+#      capabilities = ["read"]
+#    }
+#    EOF
+#
+# 4. Create a role:
+#    vault write auth/kubernetes/role/squire \
+#      bound_service_account_names=squire-external-secrets \
+#      bound_service_account_namespaces=squire \
+#      policies=squire \
+#      ttl=1h
+#
+# 5. Store secrets:
+#    vault kv put secret/squire/github-token token="ghp_..."
+#    vault kv put secret/squire/llm-api-key key="sk-..."

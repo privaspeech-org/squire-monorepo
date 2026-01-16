@@ -47,11 +47,13 @@ Goals + Signals → Steward → Tasks → Squire → PRs
 
 ### Key Design Patterns
 
-- **Repo from config, not LLM** - `default_repo` comes from steward.yaml, LLM only generates prompts
+- **Multi-repo orchestration** - Steward can manage tasks across multiple repos with per-repo limits
+- **Repo from config, not LLM** - `default_repo` comes from steward.yaml, LLM can suggest repo but it's validated against allowed list
 - **Pluggable backends** - Worker execution via Docker (local) or Kubernetes (production)
 - **Podman-first** - Docker backend auto-detects Podman socket before Docker
 - **Programmatic API** - Steward uses `@squire/core` directly, not CLI subprocess
 - **File-based task queue** - Manual tasks via markdown files in `signals/`
+- **Task reconciliation** - System auto-recovers from crashes by syncing task state with workers
 
 ### Core Module Exports (`@squire/core`)
 
@@ -60,6 +62,9 @@ Backend management: `getBackend`, `createBackend`, `setBackend` (async, lazy-loa
 Container management: `startTaskContainer`, `getContainerLogs`, `isContainerRunning`, `stopContainer`
 Concurrency: `countRunningTasks`, `canStartNewTask`, `waitForSlot`
 Logging: `createLogger`, `setLogLevel`, `setVerbose`, `setQuiet`
+Trace context: `withTraceContext`, `getTraceId` (AsyncLocalStorage-based)
+Metrics: `incrementCounter`, `setGauge`, `observeHistogram`, `getMetrics`, `resetMetrics`
+Reconciliation: `reconcileTasks`, `needsReconciliation`, `reconcileOnce`
 
 ### Worker Backend System
 
@@ -112,6 +117,7 @@ interface Task {
 | `SQUIRE_NAMESPACE` | K8s namespace for Jobs | `squire` |
 | `SQUIRE_TASKS_DIR` | Task JSON storage path | `~/.squire/tasks` |
 | `SQUIRE_WORKER_IMAGE` | Worker container image | `squire-worker:latest` |
+| `STEWARD_CONFIG_PATH` | Path to steward.yaml config | `/config/steward.yaml` or `./steward.yaml` |
 | `GITHUB_TOKEN` | GitHub API authentication | - |
 | `AI_GATEWAY_API_KEY` | LLM API key for Steward | - |
 
@@ -140,9 +146,11 @@ deploy/
 │   ├── rbac.yaml     # ServiceAccounts and Roles for Job management
 │   ├── pvc/          # Shared storage for task state
 │   ├── configmaps/   # Steward configuration
-│   ├── secrets/      # Templates (create manually)
+│   ├── secrets/      # Templates and ExternalSecret CRDs
+│   ├── network-policies/  # NetworkPolicies for security
 │   ├── steward/      # Steward Deployment
-│   └── web/          # Web Deployment, Service, Ingress
+│   └── web/          # Web Deployment, Service, Ingress, PDB, HPA
+├── examples/         # SecretStore examples (AWS, Vault)
 └── overlays/
     ├── dev/          # Local development (kind/minikube)
     └── prod/         # Production settings
@@ -185,3 +193,118 @@ kubectl apply -k deploy/overlays/prod
 
 - `.github/workflows/docker.yml` - Builds and pushes images to ghcr.io on push to main/tags
 - `.github/workflows/deploy.yml` - Manual/auto deployment via kustomize
+- `.github/workflows/e2e.yml` - E2E tests with Kind cluster (runs on PRs and main)
+
+### Production Features
+
+#### Observability
+
+The web dashboard provides health and metrics endpoints:
+
+```bash
+# Health check (returns JSON with component status)
+curl http://localhost:3000/api/health
+
+# Prometheus-format metrics
+curl http://localhost:3000/api/metrics
+```
+
+Available metrics:
+- `squire_tasks_created_total` - Counter by repo
+- `squire_tasks_completed_total` - Counter by repo and status
+- `squire_tasks_running` - Gauge of active tasks
+- `squire_task_duration_seconds` - Histogram by repo
+- `squire_container_starts_total` - Counter by backend and result
+- `squire_api_requests_total` - Counter by endpoint and status
+
+#### Real-time Streaming (SSE)
+
+The dashboard uses Server-Sent Events for real-time updates:
+
+```typescript
+// React hooks for SSE streaming
+import { useTaskStream } from '@/lib/hooks/useTaskStream';
+import { useLogStream } from '@/lib/hooks/useLogStream';
+
+// Task list updates (2s polling on server)
+const { tasks, connected } = useTaskStream();
+
+// Log streaming for a specific task (1s polling)
+const { logs, connected } = useLogStream(taskId);
+```
+
+#### Task Reconciliation
+
+On startup, the system reconciles task state with actual worker state:
+
+```typescript
+import { reconcileTasks, reconcileOnce } from '@squire/core';
+
+// Run reconciliation (idempotent, runs once per process)
+const result = await reconcileOnce();
+
+// Force reconciliation
+const result = await reconcileTasks({ dryRun: false });
+```
+
+Reconciliation handles:
+- Running tasks with no worker → Mark as failed
+- Running tasks with completed worker → Update status from exit code
+- Orphaned workers with no task file → Remove worker
+
+#### Multi-Repo Support
+
+Steward can orchestrate tasks across multiple repositories:
+
+```yaml
+# steward.yaml
+signals:
+  github:
+    repos:
+      - "org/main-repo"
+      - "org/frontend"
+      - "org/api"
+
+execution:
+  squire:
+    default_repo: "org/main-repo"
+    repos:  # Optional: explicit list (defaults to signals.github.repos)
+      - "org/main-repo"
+      - "org/frontend"
+      - "org/api"
+    max_concurrent: 5
+    max_per_repo: 2  # Limit concurrent tasks per repo
+```
+
+#### External Secrets
+
+For production, use external-secrets operator instead of manual secrets:
+
+```bash
+# Install external-secrets operator
+helm repo add external-secrets https://charts.external-secrets.io
+helm install external-secrets external-secrets/external-secrets -n external-secrets --create-namespace
+
+# Create SecretStore (see deploy/examples/ for AWS/Vault examples)
+kubectl apply -f deploy/examples/aws-secretsmanager-store.yaml
+
+# ExternalSecrets will auto-create K8s secrets from external store
+kubectl apply -f deploy/base/secrets/external-secrets.yaml
+```
+
+#### Network Policies
+
+The deployment includes network policies for security (requires CNI with NetworkPolicy support):
+
+- Default deny all ingress/egress in namespace
+- Web: Allow ingress from ingress-controller, egress to DNS + K8s API
+- Steward: Allow egress to DNS + K8s API + GitHub
+- Worker: Allow egress to DNS + GitHub + LLM API
+
+#### High Availability
+
+Web deployment includes:
+- `PodDisruptionBudget` with minAvailable: 1
+- `HorizontalPodAutoscaler` scaling 2-5 replicas at 70% CPU
+
+Note: Steward runs single replica with Recreate strategy (no HA) to prevent duplicate task dispatch.

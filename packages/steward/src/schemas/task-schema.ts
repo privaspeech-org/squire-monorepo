@@ -12,6 +12,10 @@ export const TaskSchema = z.object({
   priority: z.enum(['high', 'medium', 'low'])
     .describe('Task priority level: high for CI failures, medium for features, low for maintenance'),
 
+  repo: z.string()
+    .optional()
+    .describe('Target repository (owner/repo format). If omitted, uses default_repo from config.'),
+
   depends_on: z.array(z.string())
     .default([])
     .describe('Array of task IDs that must complete before this task can start'),
@@ -94,6 +98,7 @@ export const TASK_EXAMPLES = [
   {
     prompt: 'Fix failing CI build in packages/core: TypeError in container.ts line 145. The startTaskContainer function is missing null check for config.workerImage.',
     priority: 'high' as const,
+    repo: 'org/main-repo',
     depends_on: [],
   },
   {
@@ -104,6 +109,7 @@ export const TASK_EXAMPLES = [
   {
     prompt: 'Update documentation in CLAUDE.md to reflect new configuration options for container timeouts and resource limits.',
     priority: 'low' as const,
+    repo: 'org/docs-repo',
     depends_on: [],
   },
 ];
@@ -127,6 +133,10 @@ export function getSchemaDescription(): string {
         "type": "string",
         "enum": ["high", "medium", "low"],
         "description": "high=CI failures, medium=features, low=maintenance"
+      },
+      "repo": {
+        "type": "string",
+        "description": "Target repo (owner/repo). Optional - uses default if omitted."
       },
       "depends_on": {
         "type": "array",

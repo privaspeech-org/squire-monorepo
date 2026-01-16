@@ -1,0 +1,151 @@
+name: E2E Tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'deploy/**'
+      - '.github/workflows/e2e.yml'
+      - 'scripts/e2e-test.sh'
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  KIND_VERSION: v0.24.0
+  KUBECTL_VERSION: v1.31.0
+
+jobs:
+  e2e:
+    name: E2E Tests on Kind
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker images
+        run: |
+          docker build -t squire-worker:test apps/worker/
+          docker build -t squire-web:test -f deploy/docker/web.Dockerfile .
+          docker build -t squire-steward:test -f deploy/docker/steward.Dockerfile .
+
+      - name: Install kind
+        run: |
+          curl -Lo ./kind https://kind.sigs.k8s.io/dl/${{ env.KIND_VERSION }}/kind-linux-amd64
+          chmod +x ./kind
+          sudo mv ./kind /usr/local/bin/kind
+
+      - name: Install kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/${{ env.KUBECTL_VERSION }}/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/kubectl
+
+      - name: Create kind cluster
+        run: |
+          kind create cluster --name squire-e2e --wait 60s
+
+      - name: Load images into kind
+        run: |
+          kind load docker-image squire-worker:test --name squire-e2e
+          kind load docker-image squire-web:test --name squire-e2e
+          kind load docker-image squire-steward:test --name squire-e2e
+
+      - name: Create test secrets
+        run: |
+          # Create namespace first
+          kubectl apply -f deploy/base/namespace.yaml
+
+          # Create test secrets with dummy values for E2E
+          kubectl create secret generic squire-github-token \
+            --from-literal=token=test-token-for-e2e \
+            -n squire-dev || true
+          kubectl create secret generic squire-llm-api-key \
+            --from-literal=key=test-key-for-e2e \
+            -n squire-dev || true
+
+      - name: Create E2E overlay
+        run: |
+          mkdir -p deploy/overlays/e2e
+          cat > deploy/overlays/e2e/kustomization.yaml << 'EOF'
+          apiVersion: kustomize.config.k8s.io/v1beta1
+          kind: Kustomization
+
+          namespace: squire-dev
+
+          resources:
+            - ../dev
+
+          images:
+            - name: localhost/squire-web
+              newName: squire-web
+              newTag: test
+            - name: localhost/squire-steward
+              newName: squire-steward
+              newTag: test
+            - name: localhost/squire-worker
+              newName: squire-worker
+              newTag: test
+          EOF
+
+      - name: Deploy to kind
+        run: |
+          kubectl apply -k deploy/overlays/e2e
+
+          # Wait for deployments
+          echo "Waiting for web deployment..."
+          kubectl rollout status deployment/squire-web -n squire-dev --timeout=180s || true
+
+          echo "Waiting for steward deployment..."
+          kubectl rollout status deployment/squire-steward -n squire-dev --timeout=180s || true
+
+      - name: Run E2E smoke tests
+        run: |
+          chmod +x scripts/e2e-test.sh
+          ./scripts/e2e-test.sh
+
+      - name: Collect logs on failure
+        if: failure()
+        run: |
+          echo "=== Namespace Events ==="
+          kubectl get events -n squire-dev --sort-by='.lastTimestamp' | tail -50
+
+          echo ""
+          echo "=== Pod Status ==="
+          kubectl get pods -n squire-dev -o wide
+
+          echo ""
+          echo "=== Pod Descriptions ==="
+          kubectl describe pods -n squire-dev
+
+          echo ""
+          echo "=== Web Logs ==="
+          kubectl logs -n squire-dev -l app.kubernetes.io/name=squire-web --tail=100 || true
+
+          echo ""
+          echo "=== Steward Logs ==="
+          kubectl logs -n squire-dev -l app.kubernetes.io/name=squire-steward --tail=100 || true
+
+      - name: Delete kind cluster
+        if: always()
+        run: kind delete cluster --name squire-e2e

@@ -1,0 +1,66 @@
+# Horizontal Pod Autoscaler for Web Dashboard
+#
+# Automatically scales the web deployment based on CPU utilization.
+# Scales between 2-5 replicas, targeting 70% CPU utilization.
+#
+# Prerequisites:
+# - metrics-server must be installed in the cluster
+# - For custom metrics (request latency, etc.), install prometheus-adapter
+#
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: squire-web-hpa
+  namespace: squire
+  labels:
+    app.kubernetes.io/name: squire-web
+    app.kubernetes.io/component: web
+    app.kubernetes.io/part-of: squire
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: squire-web
+
+  # Scale between 2 and 5 replicas
+  minReplicas: 2
+  maxReplicas: 5
+
+  metrics:
+    # Scale based on CPU utilization
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+
+    # Scale based on memory utilization (optional)
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+  # Scaling behavior
+  behavior:
+    scaleDown:
+      # Be conservative when scaling down
+      stabilizationWindowSeconds: 300  # Wait 5 minutes before scaling down
+      policies:
+        - type: Percent
+          value: 25  # Scale down at most 25% at a time
+          periodSeconds: 60
+    scaleUp:
+      # Be more aggressive when scaling up
+      stabilizationWindowSeconds: 0  # Scale up immediately when needed
+      policies:
+        - type: Percent
+          value: 100  # Can double the pods
+          periodSeconds: 15
+        - type: Pods
+          value: 2  # Or add up to 2 pods
+          periodSeconds: 15
+      selectPolicy: Max  # Use whichever policy allows more scaling

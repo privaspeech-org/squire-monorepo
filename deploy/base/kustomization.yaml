@@ -15,10 +15,18 @@ resources:
   - configmaps/steward-config.yaml
   # Note: secrets/github-secret.yaml is NOT included
   # Create secrets manually or use external-secrets/sealed-secrets
+  # Note: secrets/external-secrets.yaml requires external-secrets operator
   - steward/deployment.yaml
   - web/deployment.yaml
   - web/service.yaml
   - web/ingress.yaml
+  - web/pdb.yaml
+  - web/hpa.yaml
+  # Network policies (require CNI with NetworkPolicy support)
+  - network-policies/default-deny.yaml
+  - network-policies/web-policy.yaml
+  - network-policies/steward-policy.yaml
+  - network-policies/worker-policy.yaml
 
 # Common labels for all resources
 commonLabels:

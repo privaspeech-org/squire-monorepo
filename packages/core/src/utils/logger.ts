@@ -1,3 +1,6 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
+import { randomUUID } from 'node:crypto';
+
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 export interface LogEntry {
@@ -5,12 +8,65 @@ export interface LogEntry {
   level: LogLevel;
   component: string;
   message: string;
+  traceId?: string;
   metadata?: Record<string, unknown>;
+}
+
+export interface TraceContext {
+  traceId: string;
+  spanId?: string;
+  parentSpanId?: string;
 }
 
 let currentLogLevel: LogLevel = 'info';
 let verboseMode = false;
 let quietMode = false;
+
+// AsyncLocalStorage for trace context propagation
+const traceStorage = new AsyncLocalStorage<TraceContext>();
+
+/**
+ * Run a function with a trace context.
+ * All logs within this context will include the trace ID.
+ */
+export function withTraceContext<T>(fn: () => T, traceId?: string): T {
+  const context: TraceContext = {
+    traceId: traceId || randomUUID(),
+  };
+  return traceStorage.run(context, fn);
+}
+
+/**
+ * Run an async function with a trace context.
+ * All logs within this context will include the trace ID.
+ */
+export async function withTraceContextAsync<T>(fn: () => Promise<T>, traceId?: string): Promise<T> {
+  const context: TraceContext = {
+    traceId: traceId || randomUUID(),
+  };
+  return traceStorage.run(context, fn);
+}
+
+/**
+ * Get the current trace context if one exists.
+ */
+export function getTraceContext(): TraceContext | undefined {
+  return traceStorage.getStore();
+}
+
+/**
+ * Get the current trace ID if one exists.
+ */
+export function getTraceId(): string | undefined {
+  return traceStorage.getStore()?.traceId;
+}
+
+/**
+ * Generate a new trace ID.
+ */
+export function generateTraceId(): string {
+  return randomUUID();
+}
 
 /**
  * Sensitive key patterns that should be redacted in logs.
@@ -127,11 +183,15 @@ function log(level: LogLevel, component: string, message: string, metadata?: Rec
   // Sanitize metadata to redact sensitive information
   const sanitizedMetadata = metadata ? sanitizeMetadata(metadata) : undefined;
 
+  // Get trace ID from context if available
+  const traceId = getTraceId();
+
   const entry: LogEntry = {
     timestamp: new Date().toISOString(),
     level,
     component,
     message,
+    ...(traceId && { traceId }),
     metadata: sanitizedMetadata,
   };
 

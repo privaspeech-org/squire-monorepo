@@ -8,7 +8,7 @@ metadata:
     app.kubernetes.io/component: web
     app.kubernetes.io/part-of: squire
 spec:
-  replicas: 1
+  replicas: 2  # Matches HPA minReplicas for high availability
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -68,7 +68,7 @@ spec:
               mountPath: /data/tasks
           livenessProbe:
             httpGet:
-              path: /api/stats
+              path: /api/health
               port: http
             initialDelaySeconds: 10
             periodSeconds: 30
@@ -76,7 +76,7 @@ spec:
             failureThreshold: 3
           readinessProbe:
             httpGet:
-              path: /api/stats
+              path: /api/health
               port: http
             initialDelaySeconds: 5
             periodSeconds: 10

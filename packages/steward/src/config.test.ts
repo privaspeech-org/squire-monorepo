@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { loadGoals, type StewardConfig } from './config.js';
+import { loadGoals, loadConfig, resolveConfigPath, type StewardConfig } from './config.js';
 
 describe('loadGoals', () => {
   let tempDir: string;
@@ -135,5 +135,156 @@ describe('StewardConfig interface', () => {
     assert.ok(config.goals.length > 0);
     assert.equal(config.execution.backend, 'squire');
     assert.equal(config.auto_merge?.enabled, true);
+  });
+});
+
+describe('resolveConfigPath', () => {
+  let tempDir: string;
+  let originalCwd: string;
+  let originalEnv: string | undefined;
+
+  beforeEach(() => {
+    tempDir = mkdtempSync(join(tmpdir(), 'steward-config-path-test-'));
+    originalCwd = process.cwd();
+    originalEnv = process.env.STEWARD_CONFIG_PATH;
+    delete process.env.STEWARD_CONFIG_PATH;
+  });
+
+  afterEach(() => {
+    process.chdir(originalCwd);
+    if (originalEnv !== undefined) {
+      process.env.STEWARD_CONFIG_PATH = originalEnv;
+    } else {
+      delete process.env.STEWARD_CONFIG_PATH;
+    }
+    rmSync(tempDir, { recursive: true });
+  });
+
+  it('should use STEWARD_CONFIG_PATH env var when set', () => {
+    const configPath = join(tempDir, 'custom-steward.yaml');
+    writeFileSync(configPath, 'goals: []');
+    process.env.STEWARD_CONFIG_PATH = configPath;
+
+    const resolved = resolveConfigPath();
+
+    assert.equal(resolved, configPath);
+  });
+
+  it('should fall back to ./steward.yaml in local dev', () => {
+    process.chdir(tempDir);
+    const configPath = join(tempDir, 'steward.yaml');
+    writeFileSync(configPath, 'goals: []');
+
+    const resolved = resolveConfigPath();
+
+    assert.equal(resolved, './steward.yaml');
+  });
+
+  it('should throw error with searched paths when config not found', () => {
+    process.chdir(tempDir);
+
+    assert.throws(
+      () => resolveConfigPath(),
+      (err: Error) => {
+        assert.ok(err.message.includes('steward.yaml not found'));
+        assert.ok(err.message.includes('/config/steward.yaml'));
+        assert.ok(err.message.includes('./steward.yaml'));
+        assert.ok(err.message.includes('STEWARD_CONFIG_PATH'));
+        return true;
+      }
+    );
+  });
+
+  it('should prefer STEWARD_CONFIG_PATH over other paths', () => {
+    process.chdir(tempDir);
+    // Create both files
+    writeFileSync(join(tempDir, 'steward.yaml'), 'goals: [text: local]');
+    const customPath = join(tempDir, 'custom.yaml');
+    writeFileSync(customPath, 'goals: [text: custom]');
+    process.env.STEWARD_CONFIG_PATH = customPath;
+
+    const resolved = resolveConfigPath();
+
+    assert.equal(resolved, customPath);
+  });
+});
+
+describe('loadConfig', () => {
+  let tempDir: string;
+  let originalCwd: string;
+  let originalEnv: string | undefined;
+
+  beforeEach(() => {
+    tempDir = mkdtempSync(join(tmpdir(), 'steward-loadconfig-test-'));
+    originalCwd = process.cwd();
+    originalEnv = process.env.STEWARD_CONFIG_PATH;
+    delete process.env.STEWARD_CONFIG_PATH;
+    process.chdir(tempDir);
+  });
+
+  afterEach(() => {
+    process.chdir(originalCwd);
+    if (originalEnv !== undefined) {
+      process.env.STEWARD_CONFIG_PATH = originalEnv;
+    } else {
+      delete process.env.STEWARD_CONFIG_PATH;
+    }
+    rmSync(tempDir, { recursive: true });
+  });
+
+  it('should load and parse config from resolved path', async () => {
+    const configContent = `
+goals:
+  - text: "Build great software"
+signals:
+  github:
+    repos: ["owner/repo"]
+    watch: ["open_prs"]
+execution:
+  backend: squire
+  squire:
+    default_repo: "owner/repo"
+    model: "gpt-4"
+    max_concurrent: 3
+llm:
+  model: "anthropic:claude-3-opus-20240229"
+schedule:
+  interval: "1h"
+  quiet_hours: "22:00-08:00"
+  timezone: "UTC"
+`;
+    writeFileSync(join(tempDir, 'steward.yaml'), configContent);
+
+    const config = await loadConfig();
+
+    assert.equal(config.goals[0].text, 'Build great software');
+    assert.equal(config.execution.backend, 'squire');
+    assert.equal(config.execution.squire?.default_repo, 'owner/repo');
+  });
+
+  it('should load config from STEWARD_CONFIG_PATH', async () => {
+    const customPath = join(tempDir, 'custom-config.yaml');
+    const configContent = `
+goals:
+  - text: "Custom goal"
+signals:
+  github:
+    repos: []
+    watch: []
+execution:
+  backend: squire
+llm:
+  model: "test-model"
+schedule:
+  interval: "1h"
+  quiet_hours: "22:00-08:00"
+  timezone: "UTC"
+`;
+    writeFileSync(customPath, configContent);
+    process.env.STEWARD_CONFIG_PATH = customPath;
+
+    const config = await loadConfig();
+
+    assert.equal(config.goals[0].text, 'Custom goal');
   });
 });
