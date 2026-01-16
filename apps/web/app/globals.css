@@ -37,13 +37,11 @@
   /* Animations */
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
-  --animate-glitch: glitch 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
   --animate-pulse-glow: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   --animate-slide-in-right: slide-in-right 0.5s cubic-bezier(0.16, 1, 0.3, 1);
   --animate-slide-in-left: slide-in-left 0.5s cubic-bezier(0.16, 1, 0.3, 1);
   --animate-slide-in-up: slide-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   --animate-fade-in: fade-in 0.5s ease-out;
-  --animate-flicker: flicker 3s linear infinite;
 
   @keyframes accordion-down {
     from { height: 0; }
@@ -52,13 +50,6 @@
   @keyframes accordion-up {
     from { height: var(--radix-accordion-content-height); }
     to { height: 0; }
-  }
-  @keyframes glitch {
-    0%, 100% { transform: translate(0); }
-    20% { transform: translate(-2px, 2px); }
-    40% { transform: translate(-2px, -2px); }
-    60% { transform: translate(2px, 2px); }
-    80% { transform: translate(2px, -2px); }
   }
   @keyframes pulse-glow {
     0%, 100% { opacity: 1; filter: brightness(1); }
@@ -79,14 +70,6 @@
   @keyframes fade-in {
     0% { opacity: 0; }
     100% { opacity: 1; }
-  }
-  @keyframes flicker {
-    0%, 100% { opacity: 1; }
-    41% { opacity: 1; }
-    42% { opacity: 0.8; }
-    43% { opacity: 1; }
-    45% { opacity: 0.9; }
-    46% { opacity: 1; }
   }
 }
 
@@ -155,7 +138,7 @@ body {
   overflow-x: hidden;
 }
 
-/* CRT Scanlines Effect */
+/* CRT Scanlines Effect - static, no flicker */
 .scanlines {
   pointer-events: none;
   position: fixed;
@@ -171,10 +154,9 @@ body {
     rgba(0, 255, 255, 0.03) 3px
   );
   z-index: 9999;
-  animation: scanline-flicker 0.1s infinite;
 }
 
-/* Film Grain Texture */
+/* Film Grain Texture - static, no animation */
 .grain {
   pointer-events: none;
   position: fixed;
@@ -185,25 +167,6 @@ body {
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='2.5' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.15'/%3E%3C/svg%3E");
   opacity: 0.3;
   z-index: 9998;
-  animation: grain-animation 0.5s steps(6) infinite;
-}
-
-@keyframes scanline-flicker {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.95; }
-}
-
-@keyframes grain-animation {
-  0%, 100% { transform: translate(0, 0); }
-  10% { transform: translate(-5%, -10%); }
-  20% { transform: translate(-15%, 5%); }
-  30% { transform: translate(7%, -25%); }
-  40% { transform: translate(-5%, 25%); }
-  50% { transform: translate(-15%, 10%); }
-  60% { transform: translate(15%, 0%); }
-  70% { transform: translate(0%, 15%); }
-  80% { transform: translate(3%, 35%); }
-  90% { transform: translate(-10%, 10%); }
 }
 
 /* Neon Glow Effects */
