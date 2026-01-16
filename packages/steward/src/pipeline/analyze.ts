@@ -104,9 +104,10 @@ export async function analyzeTasks(
       lastError = `LLM API error: ${errorMsg}`;
 
       if (attempt === MAX_RETRY_ATTEMPTS) {
-        logger.error('Max retry attempts reached after errors');
-        return [];
+        logger.error('Max retry attempts reached after errors, attempting fallback');
+        break;  // Try fallback instead of returning early
       }
+    }
     }
   }
 
