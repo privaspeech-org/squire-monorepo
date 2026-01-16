@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: squire-steward
+  namespace: squire
+  labels:
+    app.kubernetes.io/name: squire-steward
+    app.kubernetes.io/component: steward
+    app.kubernetes.io/part-of: squire
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate  # Only one steward should run at a time
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: squire-steward
+      app.kubernetes.io/component: steward
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: squire-steward
+        app.kubernetes.io/component: steward
+    spec:
+      serviceAccountName: squire-steward
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+      containers:
+        - name: steward
+          image: ghcr.io/privaspeech-org/squire-steward:latest
+          imagePullPolicy: Always
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: SQUIRE_BACKEND
+              value: "kubernetes"
+            - name: SQUIRE_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: SQUIRE_TASKS_DIR
+              value: "/data/tasks"
+            - name: SQUIRE_WORKER_IMAGE
+              value: "ghcr.io/privaspeech-org/squire-worker:latest"
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: squire-github-token
+                  key: token
+            - name: AI_GATEWAY_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: squire-llm-api-key
+                  key: key
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          volumeMounts:
+            - name: tasks
+              mountPath: /data/tasks
+            - name: config
+              mountPath: /config
+              readOnly: true
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: tasks
+          persistentVolumeClaim:
+            claimName: squire-tasks
+        - name: config
+          configMap:
+            name: steward-config

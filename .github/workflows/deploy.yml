@@ -1,0 +1,119 @@
+name: Deploy to Kubernetes
+
+on:
+  # Manual trigger with environment selection
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - prod
+
+  # Auto-deploy on version tags
+  push:
+    tags: ['v*']
+
+jobs:
+  deploy:
+    name: Deploy to ${{ github.event.inputs.environment || 'prod' }}
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'prod' }}
+    permissions:
+      contents: read
+      id-token: write  # For OIDC auth to cloud providers
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set environment
+        id: env
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "environment=prod" >> $GITHUB_OUTPUT
+            echo "overlay=prod" >> $GITHUB_OUTPUT
+          else
+            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+            echo "overlay=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Setup kustomize
+        uses: imranismail/setup-kustomize@v2
+
+      # Configure kubectl credentials
+      # Uncomment and configure for your cloud provider:
+      #
+      # AWS EKS:
+      # - name: Configure AWS credentials
+      #   uses: aws-actions/configure-aws-credentials@v4
+      #   with:
+      #     role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+      #     aws-region: ${{ vars.AWS_REGION }}
+      #
+      # - name: Update kubeconfig
+      #   run: aws eks update-kubeconfig --name ${{ vars.EKS_CLUSTER_NAME }} --region ${{ vars.AWS_REGION }}
+      #
+      # GKE:
+      # - name: Authenticate to Google Cloud
+      #   uses: google-github-actions/auth@v2
+      #   with:
+      #     workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      #     service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+      #
+      # - name: Get GKE credentials
+      #   uses: google-github-actions/get-gke-credentials@v2
+      #   with:
+      #     cluster_name: ${{ vars.GKE_CLUSTER_NAME }}
+      #     location: ${{ vars.GKE_LOCATION }}
+      #
+      # Azure AKS:
+      # - name: Azure Login
+      #   uses: azure/login@v2
+      #   with:
+      #     client-id: ${{ secrets.AZURE_CLIENT_ID }}
+      #     tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+      #     subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      #
+      # - name: Set AKS context
+      #   uses: azure/aks-set-context@v4
+      #   with:
+      #     resource-group: ${{ vars.AKS_RESOURCE_GROUP }}
+      #     cluster-name: ${{ vars.AKS_CLUSTER_NAME }}
+
+      - name: Configure kubectl from secret
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Validate manifests
+        run: |
+          kustomize build deploy/overlays/${{ steps.env.outputs.overlay }} | kubectl apply --dry-run=client -f -
+
+      - name: Deploy
+        run: |
+          kustomize build deploy/overlays/${{ steps.env.outputs.overlay }} | kubectl apply -f -
+
+      - name: Wait for rollout
+        run: |
+          NAMESPACE="${{ steps.env.outputs.overlay == 'dev' && 'squire-dev' || 'squire' }}"
+          kubectl rollout status deployment/squire-web -n $NAMESPACE --timeout=300s
+          kubectl rollout status deployment/squire-steward -n $NAMESPACE --timeout=300s
+
+      - name: Verify deployment
+        run: |
+          NAMESPACE="${{ steps.env.outputs.overlay == 'dev' && 'squire-dev' || 'squire' }}"
+          echo "=== Pods ==="
+          kubectl get pods -n $NAMESPACE
+          echo ""
+          echo "=== Services ==="
+          kubectl get services -n $NAMESPACE
+          echo ""
+          echo "=== Ingress ==="
+          kubectl get ingress -n $NAMESPACE

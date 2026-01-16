@@ -1,0 +1,77 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: squire
+
+resources:
+  - ../../base
+
+patches:
+  # Increase replicas for web in production
+  - target:
+      kind: Deployment
+      name: squire-web
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 2
+
+  # Use managed storage class for prod
+  - target:
+      kind: PersistentVolumeClaim
+      name: squire-tasks
+    patch: |
+      - op: add
+        path: /spec/storageClassName
+        value: managed-nfs
+      - op: replace
+        path: /spec/resources/requests/storage
+        value: 10Gi
+
+  # Configure ingress for production with TLS
+  - target:
+      kind: Ingress
+      name: squire-web
+    patch: |
+      - op: replace
+        path: /spec/rules/0/host
+        value: squire.example.com
+      - op: add
+        path: /spec/tls
+        value:
+          - hosts:
+              - squire.example.com
+            secretName: squire-tls
+      - op: add
+        path: /metadata/annotations/cert-manager.io~1cluster-issuer
+        value: letsencrypt-prod
+
+  # Enable pod disruption budget for web
+  - target:
+      kind: Deployment
+      name: squire-web
+    patch: |
+      - op: add
+        path: /spec/template/spec/affinity
+        value:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+              - weight: 100
+                podAffinityTerm:
+                  labelSelector:
+                    matchLabels:
+                      app.kubernetes.io/name: squire-web
+                  topologyKey: kubernetes.io/hostname
+
+# Image tags for production (use specific versions)
+images:
+  - name: ghcr.io/privaspeech-org/squire-web
+    newTag: v0.1.0
+  - name: ghcr.io/privaspeech-org/squire-steward
+    newTag: v0.1.0
+  - name: ghcr.io/privaspeech-org/squire-worker
+    newTag: v0.1.0
+
+# Labels for prod environment
+commonLabels:
+  environment: production

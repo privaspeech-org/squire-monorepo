@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: squire-tasks
+  namespace: squire
+  labels:
+    app.kubernetes.io/name: squire
+    app.kubernetes.io/component: storage
+spec:
+  accessModes:
+    - ReadWriteMany  # Shared by steward, web, and workers
+  resources:
+    requests:
+      storage: 1Gi
+  # storageClassName will be set per environment (overlay)

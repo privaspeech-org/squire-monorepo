@@ -1,0 +1,88 @@
+---
+# Service account for the Steward (needs to create Jobs)
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: squire-steward
+  namespace: squire
+  labels:
+    app.kubernetes.io/name: squire-steward
+    app.kubernetes.io/component: steward
+---
+# Service account for the Web dashboard (needs to create Jobs)
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: squire-web
+  namespace: squire
+  labels:
+    app.kubernetes.io/name: squire-web
+    app.kubernetes.io/component: web
+---
+# Service account for worker Jobs
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: squire-worker
+  namespace: squire
+  labels:
+    app.kubernetes.io/name: squire-worker
+    app.kubernetes.io/component: worker
+---
+# Role for managing Squire worker Jobs
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: squire-job-manager
+  namespace: squire
+  labels:
+    app.kubernetes.io/name: squire
+    app.kubernetes.io/component: rbac
+rules:
+  # Job management
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["create", "get", "list", "watch", "delete", "patch"]
+  # Pod access for logs
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get"]
+---
+# Bind the role to steward service account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: squire-steward-job-manager
+  namespace: squire
+  labels:
+    app.kubernetes.io/name: squire-steward
+    app.kubernetes.io/component: rbac
+subjects:
+  - kind: ServiceAccount
+    name: squire-steward
+    namespace: squire
+roleRef:
+  kind: Role
+  name: squire-job-manager
+  apiGroup: rbac.authorization.k8s.io
+---
+# Bind the role to web service account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: squire-web-job-manager
+  namespace: squire
+  labels:
+    app.kubernetes.io/name: squire-web
+    app.kubernetes.io/component: rbac
+subjects:
+  - kind: ServiceAccount
+    name: squire-web
+    namespace: squire
+roleRef:
+  kind: Role
+  name: squire-job-manager
+  apiGroup: rbac.authorization.k8s.io

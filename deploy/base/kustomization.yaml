@@ -1,0 +1,26 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: squire
+
+labels:
+  - includeSelectors: false
+    pairs:
+      app.kubernetes.io/managed-by: kustomize
+
+resources:
+  - namespace.yaml
+  - rbac.yaml
+  - pvc/tasks-pvc.yaml
+  - configmaps/steward-config.yaml
+  # Note: secrets/github-secret.yaml is NOT included
+  # Create secrets manually or use external-secrets/sealed-secrets
+  - steward/deployment.yaml
+  - web/deployment.yaml
+  - web/service.yaml
+  - web/ingress.yaml
+
+# Common labels for all resources
+commonLabels:
+  app.kubernetes.io/part-of: squire
+  app.kubernetes.io/version: "0.1.0"

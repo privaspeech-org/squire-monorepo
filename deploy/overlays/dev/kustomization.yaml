@@ -1,0 +1,89 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: squire-dev
+
+namePrefix: dev-
+
+resources:
+  - ../../base
+
+# Override namespace
+patches:
+  # Update namespace in all resources
+  - target:
+      kind: Namespace
+      name: squire
+    patch: |
+      - op: replace
+        path: /metadata/name
+        value: squire-dev
+
+  # Reduce resource requests for dev
+  - target:
+      kind: Deployment
+      name: squire-steward
+    patch: |
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: "50m"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: "128Mi"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: "250m"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: "256Mi"
+
+  - target:
+      kind: Deployment
+      name: squire-web
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 1
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: "50m"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: "128Mi"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: "250m"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: "256Mi"
+
+  # Use local storage class for dev
+  - target:
+      kind: PersistentVolumeClaim
+      name: squire-tasks
+    patch: |
+      - op: add
+        path: /spec/storageClassName
+        value: standard
+
+  # Disable ingress TLS for dev
+  - target:
+      kind: Ingress
+      name: squire-web
+    patch: |
+      - op: replace
+        path: /spec/rules/0/host
+        value: squire.local
+
+# Image tags for dev (use latest for faster iteration)
+images:
+  - name: ghcr.io/privaspeech-org/squire-web
+    newTag: latest
+  - name: ghcr.io/privaspeech-org/squire-steward
+    newTag: latest
+  - name: ghcr.io/privaspeech-org/squire-worker
+    newTag: latest
+
+# Labels for dev environment
+commonLabels:
+  environment: dev

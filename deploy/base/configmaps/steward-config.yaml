@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: steward-config
+  namespace: squire
+  labels:
+    app.kubernetes.io/name: squire-steward
+    app.kubernetes.io/component: config
+data:
+  steward.yaml: |
+    # Steward configuration
+    # This is a template - customize in overlays
+
+    # Default repository for tasks (override per environment)
+    default_repo: ""
+
+    # Execution configuration
+    execution:
+      backend: "squire"  # Use Squire's internal task system
+      max_concurrent: 3
+      worker_image: "ghcr.io/privaspeech-org/squire-worker:latest"
+
+    # LLM configuration for task generation
+    llm:
+      model: "anthropic/claude-sonnet-4-20250514"
+      base_url: ""  # Set via AI_GATEWAY_API_KEY secret
+
+    # Signals configuration
+    signals:
+      # GitHub polling (requires GITHUB_TOKEN)
+      github:
+        enabled: true
+        poll_interval_seconds: 300  # 5 minutes
+
+        # Monitor failed CI checks
+        failed_ci:
+          enabled: true
+          auto_fix: true
+
+        # Monitor open PRs for stale reviews
+        stale_prs:
+          enabled: false
+          days_threshold: 7
+
+    # Goals to pursue
+    goals: []
+    # Example goals (customize per environment):
+    # - type: "maintain_test_coverage"
+    #   target: 80
+    # - type: "fix_security_vulnerabilities"
+    #   severity: "high"

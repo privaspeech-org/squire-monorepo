@@ -1,0 +1,29 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: squire-web
+  namespace: squire
+  labels:
+    app.kubernetes.io/name: squire-web
+    app.kubernetes.io/component: web
+    app.kubernetes.io/part-of: squire
+  annotations:
+    # Common annotations - customize per environment
+    kubernetes.io/ingress.class: nginx
+spec:
+  rules:
+    - host: squire.example.com  # Override in overlay
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: squire-web
+                port:
+                  name: http
+  # TLS configuration - enable in overlay
+  # tls:
+  #   - hosts:
+  #       - squire.example.com
+  #     secretName: squire-tls
