@@ -42,7 +42,9 @@ const MAX_RETRY_ATTEMPTS = 3;
  * - Retry logic with error feedback (max 3 attempts)
  * - Response caching by goal hash (5 min TTL)
  * - Fallback structured text parsing
- * - Improved prompt engineering with examples
+ * - Enhanced prompts for complete task specifications
+ *
+ * @see https://elite-ai-assisted-coding.dev/p/working-with-asynchronous-coding-agents
  *
  * @param config - Steward configuration
  * @param goals - Development goals from steward.yaml
@@ -129,7 +131,14 @@ export async function analyzeTasks(
 }
 
 /**
- * Build the LLM prompt with improved structure and examples
+ * Build the LLM prompt with enhanced structure for complete task specifications
+ *
+ * Based on best practices from async coding agent research:
+ * - Complete specifications upfront (agents can't ask questions)
+ * - Context gathering (files to read, patterns to follow)
+ * - Acceptance criteria (specific, testable conditions)
+ * - Implementation hints (approach, files to modify)
+ * - Verification steps (tests, lint, build)
  */
 function buildPrompt(goals: string, signals: Signal[]): string {
   const signalSummary = signals.map(formatSignal).join('\n');
@@ -152,13 +161,15 @@ function buildPrompt(goals: string, signals: Signal[]): string {
   // Build examples section
   const examplesJson = JSON.stringify(TASK_EXAMPLES, null, 2);
 
-  return `You are a software development orchestrator. Given the goals, signals, and task history, determine what NEW coding tasks should be created.
+  return `You are a software development orchestrator generating tasks for AUTONOMOUS coding agents.
+
+CRITICAL: These agents work asynchronously and CANNOT ask clarifying questions. Every task must be a COMPLETE SPECIFICATION with all context needed for success.
 
 ## GOALS
 ${goals}
 
 ## CURRENT SIGNALS
-${signalSummary}
+${signalSummary || 'No active signals'}
 
 ## ACTIVE TASKS (already in progress - DO NOT duplicate)
 ${activeTasksSummary}
@@ -166,33 +177,70 @@ ${activeTasksSummary}
 ## RECENTLY COMPLETED (last 7 days - already done)
 ${recentTasksSummary}
 
-## RECENT FAILURES (last 7 days - be careful retrying these)
+## RECENT FAILURES (last 7 days - analyze why before retrying)
 ${failedTasksSummary}
 
 ---
 
-## INSTRUCTIONS
+## TASK GENERATION PRINCIPLES
 
-Based on this context, what NEW coding tasks should be created?
+Based on async coding agent best practices:
 
-**Rules:**
+### 1. Complete Specifications
+Each task must be self-contained. Include:
+- **What** needs to be done (clear, specific prompt)
+- **Why** it matters (context)
+- **How** to verify success (acceptance criteria)
+
+### 2. Context Gathering
+Help the agent understand the codebase:
+- List files to read first (to understand patterns)
+- Note conventions to follow
+- Identify related code that might be affected
+
+### 3. Acceptance Criteria
+Be specific and testable:
+- ❌ Bad: "Fix the bug"
+- ✅ Good: "Users can log in without 500 errors; login endpoint returns JWT within 200ms"
+
+### 4. Implementation Hints
+Guide the approach:
+- Suggest which files to modify
+- Note any constraints (don't change X, avoid Y)
+- Point to similar code for reference
+
+### 5. Verification Steps
+Ensure quality before PR:
+- Should tests run? Which ones?
+- Should lint/build pass?
+- Any custom checks needed?
+
+### 6. Right-Sized Tasks
+One focused change per task. If a goal is big, break it into smaller tasks with depends_on relationships.
+
+---
+
+## RULES
+
 1. Do NOT create tasks that duplicate active tasks
 2. Do NOT recreate recently completed tasks unless signals indicate a problem
-3. Be cautious about retrying failed tasks - only if you have new information
+3. Be cautious about retrying failed tasks - only if you have NEW information
 4. Focus on CI failures (high priority), actionable issues, progress toward goals
 5. Skip tasks for PRs that just need human review
 
-**Response Format:**
+---
 
-You MUST respond with ONLY a valid JSON array. Do not include any other text, markdown formatting, or explanations.
+## RESPONSE FORMAT
+
+Respond with ONLY a valid JSON array. No markdown, no explanations.
 
 **JSON Schema:**
 ${getSchemaDescription()}
 
-**Valid Examples:**
+**Complete Examples:**
 ${examplesJson}
 
-**Response (valid JSON array only):**`;
+**Your Response (valid JSON array only):**`;
 }
 
 /**
@@ -204,6 +252,18 @@ function formatSignal(s: Signal): string {
     const confidence = s.greptile_confidence !== undefined ? ` [confidence: ${s.greptile_confidence}/5]` : '';
     return `[github/greptile_review] PR#${s.data.prNumber}: ${p.file}:${p.line} - ${p.description}${confidence}`;
   }
+
+  // Format different signal types for clarity
+  if (s.type === 'failed_ci') {
+    return `[${s.source}/failed_ci] ⚠️ CI FAILURE: ${JSON.stringify(s.data)}`;
+  }
+  if (s.type === 'open_issue') {
+    return `[${s.source}/issue] ${JSON.stringify(s.data)}`;
+  }
+  if (s.type === 'open_pr') {
+    return `[${s.source}/pr] ${JSON.stringify(s.data)}`;
+  }
+
   return `[${s.source}/${s.type}] ${JSON.stringify(s.data)}`;
 }
 
@@ -224,7 +284,8 @@ async function generateTasksWithLLM(
 **IMPORTANT - Previous attempt failed with these errors:**
 ${previousError}
 
-Please fix these issues and respond with a valid JSON array that matches the schema.`;
+Please fix these issues and respond with a valid JSON array that matches the schema.
+Remember: Include context, acceptance_criteria, implementation, and verification for complete task specs.`;
   }
 
   const result = await generateText({
@@ -273,7 +334,7 @@ Example valid response:
 
 or
 
-[{"prompt": "Fix the build error in container.ts", "priority": "high", "depends_on": []}]`;
+[{"prompt": "Fix the build error in container.ts", "priority": "high", "depends_on": [], "acceptance_criteria": ["Build passes", "No test regressions"]}]`;
 
   try {
     const result = await generateText({
