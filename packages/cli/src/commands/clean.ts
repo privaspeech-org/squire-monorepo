@@ -41,7 +41,7 @@ export const cleanCommand = new Command('clean')
         }
 
         // Remove task file
-        deleteTask(task.id);
+        await deleteTask(task.id);
       }
     }
 

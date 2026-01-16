@@ -284,7 +284,7 @@ export async function startTaskContainer(options: ContainerOptions): Promise<str
       const containerId = container.id;
 
       // Update task with container ID and status
-      updateTask(task.id, {
+      await updateTask(task.id, {
         status: 'running',
         containerId,
         startedAt: new Date().toISOString(),
@@ -329,7 +329,7 @@ export async function startTaskContainer(options: ContainerOptions): Promise<str
         });
 
         // Update retry count
-        updateTask(task.id, {
+        await updateTask(task.id, {
           retryCount: retryCount + 1,
           lastRetryAt: new Date().toISOString(),
         });

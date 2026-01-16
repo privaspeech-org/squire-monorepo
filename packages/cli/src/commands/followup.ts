@@ -50,7 +50,7 @@ export const followupCommand = new Command('followup')
     });
 
     // Link to parent
-    updateTask(followupTask.id, {
+    await updateTask(followupTask.id, {
       parentTaskId: parentTask.id,
     });
 

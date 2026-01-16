@@ -184,7 +184,7 @@ export function startWebhookServer(config: WebhookConfig): ReturnType<typeof cre
         if (task) {
           if (action === 'closed' && payload.pull_request?.merged) {
             // PR was merged
-            updateTask(task.id, {
+            await updateTask(task.id, {
               prMerged: true,
               prMergedAt: new Date().toISOString(),
             } as any);
@@ -196,7 +196,7 @@ export function startWebhookServer(config: WebhookConfig): ReturnType<typeof cre
             });
           } else if (action === 'closed' && !payload.pull_request?.merged) {
             // PR was closed without merging
-            updateTask(task.id, {
+            await updateTask(task.id, {
               prClosed: true,
               prClosedAt: new Date().toISOString(),
             } as any);
@@ -325,7 +325,7 @@ export function startWebhookServer(config: WebhookConfig): ReturnType<typeof cre
             config.onCiFailed?.(prUrl, task.id, checkName || 'Unknown', logs);
 
             // Update task with CI failure info
-            updateTask(task.id, {
+            await updateTask(task.id, {
               ciFailed: true,
               ciFailedAt: new Date().toISOString(),
               ciFailedCheck: checkName,

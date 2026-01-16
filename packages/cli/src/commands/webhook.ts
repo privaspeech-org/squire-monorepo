@@ -135,8 +135,8 @@ export const webhookCommand = new Command('webhook')
           });
 
           // Link tasks
-          updateTask(fixTask.id, { parentTaskId: taskId });
-          updateTask(taskId, {
+          await updateTask(fixTask.id, { parentTaskId: taskId });
+          await updateTask(taskId, {
             reviewFixTaskId: fixTask.id,
             reviewFixedAt: new Date().toISOString(),
           } as any);
@@ -196,8 +196,8 @@ Fix the failing tests or build issues and commit the changes.`;
           });
 
           // Link tasks
-          updateTask(fixTask.id, { parentTaskId: taskId });
-          updateTask(taskId, { ciFixTaskId: fixTask.id } as any);
+          await updateTask(fixTask.id, { parentTaskId: taskId });
+          await updateTask(taskId, { ciFixTaskId: fixTask.id } as any);
 
           info('cli', 'Created CI fix task', {
             parentTaskId: taskId,

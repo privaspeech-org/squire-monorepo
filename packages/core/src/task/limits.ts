@@ -13,7 +13,7 @@ export async function countRunningTasks(): Promise<number> {
   for (const task of tasks) {
     if (!task.containerId) {
       // No container ID, mark as failed
-      updateTask(task.id, { status: 'failed', error: 'No container ID' });
+      await updateTask(task.id, { status: 'failed', error: 'No container ID' });
       continue;
     }
 
@@ -25,7 +25,7 @@ export async function countRunningTasks(): Promise<number> {
       // Container stopped, update task status
       const exitCode = await getContainerExitCode(task.containerId);
       const newStatus = exitCode === 0 ? 'completed' : 'failed';
-      updateTask(task.id, {
+      await updateTask(task.id, {
         status: newStatus,
         error: exitCode !== 0 ? `Container exited with code ${exitCode}` : undefined,
         completedAt: new Date().toISOString(),
