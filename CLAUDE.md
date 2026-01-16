@@ -35,7 +35,7 @@ Goals + Signals → Steward → Tasks → Squire → PRs
 | `@squire/core` | Shared task management, container orchestration, logging |
 | `@squire/cli` | Squire CLI - executes individual coding tasks in containers |
 | `@squire/steward` | Steward CLI - orchestrates tasks from goals and GitHub signals |
-| `apps/worker` | Docker image with coding agent (Node 22, git, gh CLI, pnpm, OpenCode) |
+| `apps/worker` | Docker image with coding agent (Node 24, git, gh CLI, pnpm, OpenCode) |
 
 ### Data Flow
 

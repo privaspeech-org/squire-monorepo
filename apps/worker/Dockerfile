@@ -1,7 +1,7 @@
 # Squire Worker Container
 # Runs OpenCode to execute coding tasks
 
-FROM node:22-bookworm
+FROM node:24-bookworm
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
