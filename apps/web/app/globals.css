@@ -1,180 +1,263 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-@layer base {
-  :root {
-    /* Cyberpunk Neon Color Palette */
-    --background: 220 20% 5%;
-    --foreground: 180 100% 95%;
-    --card: 220 20% 8%;
-    --card-foreground: 180 100% 95%;
-    --popover: 220 20% 8%;
-    --popover-foreground: 180 100% 95%;
-    --primary: 180 100% 50%;
-    --primary-foreground: 220 20% 5%;
-    --secondary: 300 100% 50%;
-    --secondary-foreground: 220 20% 5%;
-    --muted: 220 20% 15%;
-    --muted-foreground: 180 50% 60%;
-    --accent: 120 100% 50%;
-    --accent-foreground: 220 20% 5%;
-    --destructive: 0 100% 60%;
-    --destructive-foreground: 220 20% 5%;
-    --border: 180 100% 50%;
-    --input: 220 20% 12%;
-    --ring: 180 100% 50%;
-    --radius: 0.125rem;
-    --warning: 45 100% 50%;
-    --success: 120 100% 45%;
+/* Theme configuration for Tailwind v4 */
+@theme {
+  /* Border radius */
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
 
-    /* Font stacks */
-    --font-space-grotesk: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
-    --font-jetbrains-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
+  /* Colors using CSS variable references */
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-warning: hsl(var(--warning));
+  --color-success: hsl(var(--success));
+
+  /* Font families */
+  --font-family-display: var(--font-space-grotesk), sans-serif;
+  --font-family-mono: var(--font-jetbrains-mono), monospace;
+
+  /* Animations */
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+  --animate-glitch: glitch 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
+  --animate-pulse-glow: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-slide-in-right: slide-in-right 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-slide-in-left: slide-in-left 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-slide-in-up: slide-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-fade-in: fade-in 0.5s ease-out;
+  --animate-flicker: flicker 3s linear infinite;
+
+  @keyframes accordion-down {
+    from { height: 0; }
+    to { height: var(--radix-accordion-content-height); }
   }
-
-  .dark {
-    --background: 220 20% 5%;
-    --foreground: 180 100% 95%;
-    --card: 220 20% 8%;
-    --card-foreground: 180 100% 95%;
-    --popover: 220 20% 8%;
-    --popover-foreground: 180 100% 95%;
-    --primary: 180 100% 50%;
-    --primary-foreground: 220 20% 5%;
-    --secondary: 300 100% 50%;
-    --secondary-foreground: 220 20% 5%;
-    --muted: 220 20% 15%;
-    --muted-foreground: 180 50% 60%;
-    --accent: 120 100% 50%;
-    --accent-foreground: 220 20% 5%;
-    --destructive: 0 100% 60%;
-    --destructive-foreground: 220 20% 5%;
-    --border: 180 100% 50%;
-    --input: 220 20% 12%;
-    --ring: 180 100% 50%;
-    --warning: 45 100% 50%;
-    --success: 120 100% 45%;
+  @keyframes accordion-up {
+    from { height: var(--radix-accordion-content-height); }
+    to { height: 0; }
   }
-}
-
-@layer base {
-  * {
-    @apply border-border;
+  @keyframes glitch {
+    0%, 100% { transform: translate(0); }
+    20% { transform: translate(-2px, 2px); }
+    40% { transform: translate(-2px, -2px); }
+    60% { transform: translate(2px, 2px); }
+    80% { transform: translate(2px, -2px); }
   }
-
-  body {
-    @apply bg-background text-foreground;
-    position: relative;
-    overflow-x: hidden;
+  @keyframes pulse-glow {
+    0%, 100% { opacity: 1; filter: brightness(1); }
+    50% { opacity: 0.8; filter: brightness(1.3); }
   }
-
-  /* CRT Scanlines Effect */
-  .scanlines {
-    pointer-events: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: repeating-linear-gradient(
-      0deg,
-      rgba(0, 255, 255, 0.03) 0px,
-      transparent 1px,
-      transparent 2px,
-      rgba(0, 255, 255, 0.03) 3px
-    );
-    z-index: 9999;
-    animation: scanline-flicker 0.1s infinite;
+  @keyframes slide-in-right {
+    0% { transform: translateX(100%); opacity: 0; }
+    100% { transform: translateX(0); opacity: 1; }
   }
-
-  /* Film Grain Texture */
-  .grain {
-    pointer-events: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='2.5' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.15'/%3E%3C/svg%3E");
-    opacity: 0.3;
-    z-index: 9998;
-    animation: grain-animation 0.5s steps(6) infinite;
+  @keyframes slide-in-left {
+    0% { transform: translateX(-100%); opacity: 0; }
+    100% { transform: translateX(0); opacity: 1; }
   }
-
-  @keyframes scanline-flicker {
+  @keyframes slide-in-up {
+    0% { transform: translateY(30px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes fade-in {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  @keyframes flicker {
     0%, 100% { opacity: 1; }
-    50% { opacity: 0.95; }
-  }
-
-  @keyframes grain-animation {
-    0%, 100% { transform: translate(0, 0); }
-    10% { transform: translate(-5%, -10%); }
-    20% { transform: translate(-15%, 5%); }
-    30% { transform: translate(7%, -25%); }
-    40% { transform: translate(-5%, 25%); }
-    50% { transform: translate(-15%, 10%); }
-    60% { transform: translate(15%, 0%); }
-    70% { transform: translate(0%, 15%); }
-    80% { transform: translate(3%, 35%); }
-    90% { transform: translate(-10%, 10%); }
+    41% { opacity: 1; }
+    42% { opacity: 0.8; }
+    43% { opacity: 1; }
+    45% { opacity: 0.9; }
+    46% { opacity: 1; }
   }
 }
 
-@layer components {
-  /* Neon Glow Effects */
-  .glow-cyan {
-    box-shadow: 0 0 5px hsl(180 100% 50% / 0.5),
-                0 0 10px hsl(180 100% 50% / 0.3),
-                0 0 20px hsl(180 100% 50% / 0.2),
-                inset 0 0 5px hsl(180 100% 50% / 0.1);
-  }
+:root {
+  /* Cyberpunk Neon Color Palette */
+  --background: 220 20% 5%;
+  --foreground: 180 100% 95%;
+  --card: 220 20% 8%;
+  --card-foreground: 180 100% 95%;
+  --popover: 220 20% 8%;
+  --popover-foreground: 180 100% 95%;
+  --primary: 180 100% 50%;
+  --primary-foreground: 220 20% 5%;
+  --secondary: 300 100% 50%;
+  --secondary-foreground: 220 20% 5%;
+  --muted: 220 20% 15%;
+  --muted-foreground: 180 50% 60%;
+  --accent: 120 100% 50%;
+  --accent-foreground: 220 20% 5%;
+  --destructive: 0 100% 60%;
+  --destructive-foreground: 220 20% 5%;
+  --border: 180 100% 50%;
+  --input: 220 20% 12%;
+  --ring: 180 100% 50%;
+  --radius: 0.125rem;
+  --warning: 45 100% 50%;
+  --success: 120 100% 45%;
 
-  .glow-magenta {
-    box-shadow: 0 0 5px hsl(300 100% 50% / 0.5),
-                0 0 10px hsl(300 100% 50% / 0.3),
-                0 0 20px hsl(300 100% 50% / 0.2),
-                inset 0 0 5px hsl(300 100% 50% / 0.1);
-  }
+  /* Font stacks */
+  --font-space-grotesk: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-jetbrains-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
+}
 
-  .glow-green {
-    box-shadow: 0 0 5px hsl(120 100% 50% / 0.5),
-                0 0 10px hsl(120 100% 50% / 0.3),
-                0 0 20px hsl(120 100% 50% / 0.2),
-                inset 0 0 5px hsl(120 100% 50% / 0.1);
-  }
+.dark {
+  --background: 220 20% 5%;
+  --foreground: 180 100% 95%;
+  --card: 220 20% 8%;
+  --card-foreground: 180 100% 95%;
+  --popover: 220 20% 8%;
+  --popover-foreground: 180 100% 95%;
+  --primary: 180 100% 50%;
+  --primary-foreground: 220 20% 5%;
+  --secondary: 300 100% 50%;
+  --secondary-foreground: 220 20% 5%;
+  --muted: 220 20% 15%;
+  --muted-foreground: 180 50% 60%;
+  --accent: 120 100% 50%;
+  --accent-foreground: 220 20% 5%;
+  --destructive: 0 100% 60%;
+  --destructive-foreground: 220 20% 5%;
+  --border: 180 100% 50%;
+  --input: 220 20% 12%;
+  --ring: 180 100% 50%;
+  --warning: 45 100% 50%;
+  --success: 120 100% 45%;
+}
 
-  .glow-red {
-    box-shadow: 0 0 5px hsl(0 100% 60% / 0.5),
-                0 0 10px hsl(0 100% 60% / 0.3),
-                0 0 20px hsl(0 100% 60% / 0.2),
-                inset 0 0 5px hsl(0 100% 60% / 0.1);
-  }
+* {
+  border-color: var(--color-border);
+}
 
-  /* Terminal Grid Background */
-  .grid-bg {
-    background-image:
-      linear-gradient(hsl(180 100% 50% / 0.1) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(180 100% 50% / 0.1) 1px, transparent 1px);
-    background-size: 20px 20px;
-  }
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  position: relative;
+  overflow-x: hidden;
+}
 
-  /* Text Glow Effects */
-  .text-glow-cyan {
-    text-shadow: 0 0 5px hsl(180 100% 50% / 0.8),
-                 0 0 10px hsl(180 100% 50% / 0.5),
-                 0 0 20px hsl(180 100% 50% / 0.3);
-  }
+/* CRT Scanlines Effect */
+.scanlines {
+  pointer-events: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 255, 255, 0.03) 0px,
+    transparent 1px,
+    transparent 2px,
+    rgba(0, 255, 255, 0.03) 3px
+  );
+  z-index: 9999;
+  animation: scanline-flicker 0.1s infinite;
+}
 
-  .text-glow-magenta {
-    text-shadow: 0 0 5px hsl(300 100% 50% / 0.8),
-                 0 0 10px hsl(300 100% 50% / 0.5),
-                 0 0 20px hsl(300 100% 50% / 0.3);
-  }
+/* Film Grain Texture */
+.grain {
+  pointer-events: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='2.5' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.15'/%3E%3C/svg%3E");
+  opacity: 0.3;
+  z-index: 9998;
+  animation: grain-animation 0.5s steps(6) infinite;
+}
 
-  .text-glow-green {
-    text-shadow: 0 0 5px hsl(120 100% 50% / 0.8),
-                 0 0 10px hsl(120 100% 50% / 0.5),
-                 0 0 20px hsl(120 100% 50% / 0.3);
-  }
+@keyframes scanline-flicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.95; }
+}
+
+@keyframes grain-animation {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-5%, -10%); }
+  20% { transform: translate(-15%, 5%); }
+  30% { transform: translate(7%, -25%); }
+  40% { transform: translate(-5%, 25%); }
+  50% { transform: translate(-15%, 10%); }
+  60% { transform: translate(15%, 0%); }
+  70% { transform: translate(0%, 15%); }
+  80% { transform: translate(3%, 35%); }
+  90% { transform: translate(-10%, 10%); }
+}
+
+/* Neon Glow Effects */
+.glow-cyan {
+  box-shadow: 0 0 5px hsl(180 100% 50% / 0.5),
+              0 0 10px hsl(180 100% 50% / 0.3),
+              0 0 20px hsl(180 100% 50% / 0.2),
+              inset 0 0 5px hsl(180 100% 50% / 0.1);
+}
+
+.glow-magenta {
+  box-shadow: 0 0 5px hsl(300 100% 50% / 0.5),
+              0 0 10px hsl(300 100% 50% / 0.3),
+              0 0 20px hsl(300 100% 50% / 0.2),
+              inset 0 0 5px hsl(300 100% 50% / 0.1);
+}
+
+.glow-green {
+  box-shadow: 0 0 5px hsl(120 100% 50% / 0.5),
+              0 0 10px hsl(120 100% 50% / 0.3),
+              0 0 20px hsl(120 100% 50% / 0.2),
+              inset 0 0 5px hsl(120 100% 50% / 0.1);
+}
+
+.glow-red {
+  box-shadow: 0 0 5px hsl(0 100% 60% / 0.5),
+              0 0 10px hsl(0 100% 60% / 0.3),
+              0 0 20px hsl(0 100% 60% / 0.2),
+              inset 0 0 5px hsl(0 100% 60% / 0.1);
+}
+
+/* Terminal Grid Background */
+.grid-bg {
+  background-image:
+    linear-gradient(hsl(180 100% 50% / 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(180 100% 50% / 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Text Glow Effects */
+.text-glow-cyan {
+  text-shadow: 0 0 5px hsl(180 100% 50% / 0.8),
+               0 0 10px hsl(180 100% 50% / 0.5),
+               0 0 20px hsl(180 100% 50% / 0.3);
+}
+
+.text-glow-magenta {
+  text-shadow: 0 0 5px hsl(300 100% 50% / 0.8),
+               0 0 10px hsl(300 100% 50% / 0.5),
+               0 0 20px hsl(300 100% 50% / 0.3);
+}
+
+.text-glow-green {
+  text-shadow: 0 0 5px hsl(120 100% 50% / 0.8),
+               0 0 10px hsl(120 100% 50% / 0.5),
+               0 0 20px hsl(120 100% 50% / 0.3);
 }
