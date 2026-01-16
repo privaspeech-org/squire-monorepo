@@ -1,8 +1,9 @@
 import Docker from 'dockerode';
-import { existsSync } from 'node:fs';
-import type { Task } from '../types/task.js';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import type { Task, ContainerConfig } from '../types/task.js';
 import { updateTask, getTasksDir } from '../task/store.js';
-import { debug, info } from '../utils/logger.js';
+import { debug, info, warn, error as logError, audit } from '../utils/logger.js';
 
 /**
  * Create Docker client with auto-detection for podman.
@@ -41,6 +42,11 @@ function createDockerClient(): Docker {
 const docker = createDockerClient();
 
 const DEFAULT_WORKER_IMAGE = 'squire-worker:latest';
+const DEFAULT_TIMEOUT_MINUTES = 30;
+const DEFAULT_MAX_RETRIES = 3;
+const DEFAULT_CPU_LIMIT = 2;
+const DEFAULT_MEMORY_LIMIT_MB = 4096;
+const DEFAULT_PRESERVE_LOGS = true;
 
 export interface ContainerOptions {
   task: Task;
@@ -48,82 +54,303 @@ export interface ContainerOptions {
   model?: string;
   verbose?: boolean;
   workerImage?: string;
+  containerConfig?: ContainerConfig;
 }
 
 /**
- * Start a container to execute a task.
+ * Sleep for a given number of milliseconds.
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Calculate exponential backoff delay for retry attempts.
+ */
+function calculateBackoffDelay(retryCount: number): number {
+  // Exponential backoff: 2^retryCount seconds, capped at 60 seconds
+  const baseDelay = Math.min(Math.pow(2, retryCount) * 1000, 60000);
+  // Add jitter (±20%)
+  const jitter = baseDelay * 0.2 * (Math.random() - 0.5);
+  return Math.floor(baseDelay + jitter);
+}
+
+/**
+ * Preserve container logs to disk before cleanup.
+ */
+async function preserveContainerLogs(containerId: string, taskId: string): Promise<void> {
+  try {
+    const logsDir = join(getTasksDir(), '../logs');
+    if (!existsSync(logsDir)) {
+      mkdirSync(logsDir, { recursive: true });
+    }
+
+    const logPath = join(logsDir, `${taskId}.log`);
+    const logs = await getContainerLogs(containerId, undefined);
+
+    writeFileSync(logPath, logs, 'utf-8');
+    info('container', 'Container logs preserved', {
+      taskId,
+      logPath,
+      containerId: containerId.slice(0, 12),
+    });
+  } catch (err) {
+    warn('container', 'Failed to preserve container logs', {
+      taskId,
+      containerId: containerId.slice(0, 12),
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
+
+/**
+ * Monitor container execution with timeout.
+ * Returns true if container completed successfully, false if timeout or error.
+ */
+async function monitorContainerWithTimeout(
+  containerId: string,
+  taskId: string,
+  timeoutMinutes: number
+): Promise<boolean> {
+  const timeoutMs = timeoutMinutes * 60 * 1000;
+  const startTime = Date.now();
+  const pollInterval = 5000; // Check every 5 seconds
+
+  debug('container', 'Starting container monitoring', {
+    taskId,
+    containerId: containerId.slice(0, 12),
+    timeoutMinutes,
+  });
+
+  while (Date.now() - startTime < timeoutMs) {
+    try {
+      const running = await isContainerRunning(containerId);
+
+      if (!running) {
+        // Container stopped, check exit code
+        const exitCode = await getContainerExitCode(containerId);
+        debug('container', 'Container stopped', {
+          taskId,
+          containerId: containerId.slice(0, 12),
+          exitCode,
+        });
+        return exitCode === 0;
+      }
+
+      await sleep(pollInterval);
+    } catch (err) {
+      logError('container', 'Error monitoring container', {
+        taskId,
+        containerId: containerId.slice(0, 12),
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return false;
+    }
+  }
+
+  // Timeout reached
+  warn('container', 'Container execution timeout', {
+    taskId,
+    containerId: containerId.slice(0, 12),
+    timeoutMinutes,
+  });
+
+  // Stop the container
+  try {
+    await stopContainer(containerId);
+  } catch (err) {
+    warn('container', 'Failed to stop container after timeout', {
+      taskId,
+      containerId: containerId.slice(0, 12),
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+
+  return false;
+}
+
+/**
+ * Check if an error is transient and should be retried.
+ */
+function isTransientError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+
+  const message = err.message.toLowerCase();
+  const transientPatterns = [
+    'econnrefused',
+    'enotfound',
+    'etimedout',
+    'socket hang up',
+    'network error',
+    'no such container',
+    'container is restarting',
+    'oom killed',
+  ];
+
+  return transientPatterns.some(pattern => message.includes(pattern));
+}
+
+/**
+ * Start a container to execute a task with retry logic and timeout enforcement.
  * The container runs async (detached) and updates the task file on completion.
  */
 export async function startTaskContainer(options: ContainerOptions): Promise<string> {
-  const { task, githubToken, model, verbose, workerImage } = options;
+  const { task, githubToken, model, verbose, workerImage, containerConfig } = options;
   const image = workerImage || process.env.SQUIRE_WORKER_IMAGE || DEFAULT_WORKER_IMAGE;
+
+  // Apply defaults to container config
+  const config: Required<ContainerConfig> = {
+    timeoutMinutes: containerConfig?.timeoutMinutes ?? DEFAULT_TIMEOUT_MINUTES,
+    maxRetries: containerConfig?.maxRetries ?? DEFAULT_MAX_RETRIES,
+    cpuLimit: containerConfig?.cpuLimit ?? DEFAULT_CPU_LIMIT,
+    memoryLimitMB: containerConfig?.memoryLimitMB ?? DEFAULT_MEMORY_LIMIT_MB,
+    preserveLogsOnFailure: containerConfig?.preserveLogsOnFailure ?? DEFAULT_PRESERVE_LOGS,
+  };
+
+  const retryCount = task.retryCount || 0;
+
+  // Security audit log for container start with GitHub token access
+  audit('container', 'container_start_requested', {
+    taskId: task.id,
+    repo: task.repo,
+    branch: task.branch,
+    githubTokenPresent: !!githubToken,
+    cpuLimit: config.cpuLimit,
+    memoryLimitMB: config.memoryLimitMB,
+    timeoutMinutes: config.timeoutMinutes,
+  });
 
   info('container', 'Starting task container', {
     taskId: task.id,
     repo: task.repo,
     branch: task.branch,
+    retryCount,
+    timeoutMinutes: config.timeoutMinutes,
   });
 
-  // Environment variables for the worker
-  const env = [
-    `TASK_ID=${task.id}`,
-    `REPO=${task.repo}`,
-    `PROMPT=${task.prompt}`,
-    `BRANCH=${task.branch}`,
-    `BASE_BRANCH=${task.baseBranch || 'main'}`,
-    `GITHUB_TOKEN=${githubToken}`,
-    `MODEL=${model || 'opencode/glm-4.7-free'}`,
-  ];
+  let lastError: Error | null = null;
 
-  // Mount tasks directory so container can update task status
-  const tasksDir = getTasksDir();
+  // Retry loop with exponential backoff
+  for (let attempt = 0; attempt <= config.maxRetries; attempt++) {
+    try {
+      // Environment variables for the worker
+      const env = [
+        `TASK_ID=${task.id}`,
+        `REPO=${task.repo}`,
+        `PROMPT=${task.prompt}`,
+        `BRANCH=${task.branch}`,
+        `BASE_BRANCH=${task.baseBranch || 'main'}`,
+        `GITHUB_TOKEN=${githubToken}`,
+        `MODEL=${model || 'opencode/glm-4.7-free'}`,
+      ];
 
-  const container = await docker.createContainer({
-    Image: image,
-    Env: env,
-    HostConfig: {
-      Binds: [
-        `${tasksDir}:/tasks:rw`,
-      ],
-      AutoRemove: false,
-    },
-    Labels: {
-      'squire.task.id': task.id,
-      'squire.repo': task.repo,
-    },
-  });
+      // Mount tasks directory so container can update task status
+      const tasksDir = getTasksDir();
 
-  debug('container', 'Container created', {
-    taskId: task.id,
-    containerId: container.id,
-    image,
-  });
+      // Create container with resource limits
+      const container = await docker.createContainer({
+        Image: image,
+        Env: env,
+        HostConfig: {
+          Binds: [
+            `${tasksDir}:/tasks:rw`,
+          ],
+          AutoRemove: false,
+          // Resource limits
+          Memory: config.memoryLimitMB * 1024 * 1024, // Convert MB to bytes
+          NanoCpus: config.cpuLimit * 1e9, // Convert cores to nanocpus
+          CpuQuota: config.cpuLimit * 100000,
+          CpuPeriod: 100000,
+        },
+        Labels: {
+          'squire.task.id': task.id,
+          'squire.repo': task.repo,
+          'squire.retry': String(retryCount),
+        },
+      });
 
-  // Start the container (async, detached)
-  await container.start();
+      debug('container', 'Container created', {
+        taskId: task.id,
+        containerId: container.id,
+        image,
+        cpuLimit: config.cpuLimit,
+        memoryLimitMB: config.memoryLimitMB,
+        attempt: attempt + 1,
+      });
 
-  const containerId = container.id;
+      // Start the container (async, detached)
+      await container.start();
 
-  // Update task with container ID and status
-  updateTask(task.id, {
-    status: 'running',
-    containerId,
-    startedAt: new Date().toISOString(),
-  });
+      const containerId = container.id;
 
-  info('container', 'Container started', {
-    taskId: task.id,
-    containerId: containerId.slice(0, 12),
-  });
+      // Update task with container ID and status
+      updateTask(task.id, {
+        status: 'running',
+        containerId,
+        startedAt: new Date().toISOString(),
+        retryCount,
+        lastRetryAt: attempt > 0 ? new Date().toISOString() : undefined,
+      });
 
-  if (verbose) {
-    debug('container', 'Container started (verbose)', {
-      taskId: task.id,
-      fullContainerId: containerId,
-    });
+      // Security audit log for successful container start
+      audit('container', 'container_started', {
+        taskId: task.id,
+        containerId: containerId.slice(0, 12),
+        image,
+        attempt: attempt + 1,
+      });
+
+      info('container', 'Container started', {
+        taskId: task.id,
+        containerId: containerId.slice(0, 12),
+        attempt: attempt + 1,
+      });
+
+      if (verbose) {
+        debug('container', 'Container started (verbose)', {
+          taskId: task.id,
+          fullContainerId: containerId,
+        });
+      }
+
+      return containerId;
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+
+      // Check if error is transient and we should retry
+      if (isTransientError(err) && attempt < config.maxRetries) {
+        const delay = calculateBackoffDelay(attempt);
+        warn('container', 'Container start failed, retrying', {
+          taskId: task.id,
+          attempt: attempt + 1,
+          maxRetries: config.maxRetries,
+          error: lastError.message,
+          retryDelayMs: delay,
+        });
+
+        // Update retry count
+        updateTask(task.id, {
+          retryCount: retryCount + 1,
+          lastRetryAt: new Date().toISOString(),
+        });
+
+        await sleep(delay);
+        continue;
+      }
+
+      // Non-transient error or max retries reached
+      logError('container', 'Container start failed', {
+        taskId: task.id,
+        attempt: attempt + 1,
+        error: lastError.message,
+      });
+
+      throw lastError;
+    }
   }
 
-  return containerId;
+  // Should not reach here, but throw last error if we do
+  throw lastError || new Error('Container start failed for unknown reason');
 }
 
 /**
@@ -137,19 +364,25 @@ export async function getContainerLogs(containerId: string, tail?: number): Prom
 
   const container = docker.getContainer(containerId);
 
-  const logs = await container.logs({
+  const logsOptions: Docker.ContainerLogsOptions & { follow: false } = {
     stdout: true,
     stderr: true,
-    tail: tail || 100,
     follow: false,
-  });
+  };
+
+  // Only add tail if specified, otherwise get all logs
+  if (tail !== undefined) {
+    logsOptions.tail = tail;
+  }
+
+  const logs = await container.logs(logsOptions);
 
   debug('container', 'Container logs retrieved', {
     containerId: containerId.slice(0, 12),
     logLength: logs.length,
   });
 
-  return logs.toString('utf-8');
+  return logs.toString();
 }
 
 /**
@@ -185,12 +418,20 @@ export async function getContainerExitCode(containerId: string): Promise<number 
  * Stop a running container.
  */
 export async function stopContainer(containerId: string): Promise<void> {
+  audit('container', 'container_stop_requested', {
+    containerId: containerId.slice(0, 12),
+  });
+
   info('container', 'Stopping container', {
     containerId: containerId.slice(0, 12),
   });
 
   const container = docker.getContainer(containerId);
   await container.stop();
+
+  audit('container', 'container_stopped', {
+    containerId: containerId.slice(0, 12),
+  });
 
   info('container', 'Container stopped', {
     containerId: containerId.slice(0, 12),
@@ -199,18 +440,73 @@ export async function stopContainer(containerId: string): Promise<void> {
 
 /**
  * Remove a container (for cleanup).
+ * Optionally preserves logs before removal.
  */
-export async function removeContainer(containerId: string): Promise<void> {
+export async function removeContainer(
+  containerId: string,
+  options?: { preserveLogs?: boolean; taskId?: string }
+): Promise<void> {
   info('container', 'Removing container', {
     containerId: containerId.slice(0, 12),
+    preserveLogs: options?.preserveLogs,
   });
 
-  const container = docker.getContainer(containerId);
-  await container.remove({ force: true });
+  // Preserve logs if requested
+  if (options?.preserveLogs && options?.taskId) {
+    await preserveContainerLogs(containerId, options.taskId);
+  }
 
-  debug('container', 'Container removed', {
-    containerId: containerId.slice(0, 12),
-  });
+  try {
+    const container = docker.getContainer(containerId);
+    await container.remove({ force: true });
+
+    audit('container', 'container_removed', {
+      containerId: containerId.slice(0, 12),
+      taskId: options?.taskId,
+    });
+
+    debug('container', 'Container removed', {
+      containerId: containerId.slice(0, 12),
+    });
+  } catch (err) {
+    // Container might already be removed, log but don't throw
+    warn('container', 'Failed to remove container', {
+      containerId: containerId.slice(0, 12),
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
+
+/**
+ * Cleanup container with safety checks.
+ * Preserves logs on failure if configured.
+ */
+export async function cleanupContainer(
+  containerId: string,
+  taskId: string,
+  preserveLogsOnFailure: boolean = true
+): Promise<void> {
+  try {
+    // Check if container failed
+    const exitCode = await getContainerExitCode(containerId);
+    const failed = exitCode !== null && exitCode !== 0;
+
+    if (failed && preserveLogsOnFailure) {
+      await preserveContainerLogs(containerId, taskId);
+    }
+
+    // Remove the container
+    await removeContainer(containerId, {
+      preserveLogs: false, // Already preserved if needed
+      taskId,
+    });
+  } catch (err) {
+    warn('container', 'Failed to cleanup container', {
+      taskId,
+      containerId: containerId.slice(0, 12),
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
 }
 
 /**

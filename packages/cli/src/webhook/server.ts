@@ -1,6 +1,7 @@
 import { createServer, IncomingMessage, ServerResponse } from 'node:http';
 import { createHmac } from 'node:crypto';
 import { listTasks, updateTask, debug, info, warn, createLogger } from '@squire/core';
+import { validateWebhookPayload } from './schemas.js';
 
 const logger = createLogger('webhook');
 
@@ -13,6 +14,7 @@ interface ReviewComment {
 interface WebhookConfig {
   port: number;
   secret?: string;
+  requireSecret?: boolean; // If true, webhook secret is required (recommended for production)
   autoFixCi?: boolean;
   autoFixReviews?: boolean;
   reviewBotUsers?: string[];
@@ -46,6 +48,21 @@ function verifySignature(payload: string, signature: string | undefined, secret:
  * Start a webhook server to receive GitHub events.
  */
 export function startWebhookServer(config: WebhookConfig): ReturnType<typeof createServer> {
+  // Enforce webhook secret requirement if configured
+  if (config.requireSecret && !config.secret) {
+    throw new Error(
+      'Webhook secret is required but not configured. ' +
+      'Set config.secret or disable config.requireSecret for development only.'
+    );
+  }
+
+  // Security audit log for server start
+  logger.audit('webhook_server_start', {
+    port: config.port,
+    secretConfigured: !!config.secret,
+    requireSecret: config.requireSecret,
+  });
+
   const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
     const requestId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -72,15 +89,37 @@ export function startWebhookServer(config: WebhookConfig): ReturnType<typeof cre
     }
     const body = Buffer.concat(chunks).toString();
 
-    // Verify signature if secret is configured
-    if (config.secret) {
+    // Verify signature (enforced if requireSecret is true)
+    if (config.secret || config.requireSecret) {
+      if (!config.secret) {
+        logger.audit('webhook_rejected', {
+          requestId,
+          reason: 'secret_required_but_not_configured',
+        });
+        warn('webhook', 'Webhook secret required but not configured', { requestId });
+        res.writeHead(500);
+        res.end('Server configuration error');
+        return;
+      }
+
       const signature = req.headers['x-hub-signature-256'] as string | undefined;
       if (!verifySignature(body, signature, config.secret)) {
+        logger.audit('webhook_rejected', {
+          requestId,
+          reason: 'invalid_signature',
+          signaturePresent: !!signature,
+        });
         warn('webhook', 'Invalid webhook signature', { requestId });
         res.writeHead(401);
         res.end('Invalid signature');
         return;
       }
+
+      // Security audit log for successful authentication
+      logger.audit('webhook_authenticated', { requestId });
+    } else {
+      // Warn if no secret is configured (insecure)
+      warn('webhook', 'Webhook received without signature verification (insecure)', { requestId });
     }
 
     // Parse event
@@ -90,11 +129,43 @@ export function startWebhookServer(config: WebhookConfig): ReturnType<typeof cre
     try {
       payload = JSON.parse(body);
     } catch (parseError) {
+      logger.audit('webhook_rejected', {
+        requestId,
+        reason: 'invalid_json',
+      });
       warn('webhook', 'Invalid JSON in webhook payload', { requestId });
       res.writeHead(400);
       res.end('Invalid JSON');
       return;
     }
+
+    // Validate payload schema
+    const validation = validateWebhookPayload(event, payload);
+    if (!validation.valid) {
+      logger.audit('webhook_rejected', {
+        requestId,
+        reason: 'schema_validation_failed',
+        event,
+        error: validation.error,
+      });
+      warn('webhook', 'Webhook payload validation failed', {
+        requestId,
+        event,
+        error: validation.error,
+      });
+      res.writeHead(400);
+      res.end('Invalid payload schema');
+      return;
+    }
+
+    // Use validated payload
+    payload = validation.data;
+
+    logger.audit('webhook_received', {
+      requestId,
+      event,
+      action: payload.action,
+    });
 
     debug('webhook', 'Processing webhook event', {
       requestId,

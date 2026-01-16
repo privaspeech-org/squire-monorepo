@@ -25,6 +25,8 @@ export interface Task {
   reviewFixedAt?: string;    // When review fix task was created
 
   error?: string;            // Error message if failed
+  retryCount?: number;       // Number of retry attempts made
+  lastRetryAt?: string;      // When last retry was attempted
 
   createdAt: string;         // ISO timestamp
   startedAt?: string;        // When execution started
@@ -51,8 +53,17 @@ export interface TaskResult {
   logs?: string;
 }
 
+export interface ContainerConfig {
+  timeoutMinutes?: number;   // Container execution timeout (default: 30)
+  maxRetries?: number;       // Max retry attempts for transient failures (default: 3)
+  cpuLimit?: number;         // CPU cores limit (default: 2)
+  memoryLimitMB?: number;    // Memory limit in MB (default: 4096)
+  preserveLogsOnFailure?: boolean; // Keep container logs when task fails (default: true)
+}
+
 export interface WorkerConfig {
   githubToken: string;
   model?: string;            // OpenCode model to use
   opencodePath?: string;     // Path to OpenCode binary in container
+  container?: ContainerConfig; // Container execution configuration
 }
