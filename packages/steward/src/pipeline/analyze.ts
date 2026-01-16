@@ -108,7 +108,6 @@ export async function analyzeTasks(
         break;  // Try fallback instead of returning early
       }
     }
-    }
   }
 
   // All retries failed - attempt fallback parsing
