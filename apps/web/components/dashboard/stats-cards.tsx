@@ -24,14 +24,16 @@ export function StatsCards({ stats }: StatsCardsProps) {
       color: 'text-primary',
       glow: 'glow-cyan',
       border: 'border-primary/30',
+      hover: 'hover:glow-cyan',
     },
     {
       title: 'RUNNING',
       value: stats.running,
       icon: Clock,
       color: 'text-warning',
-      glow: 'shadow-lg shadow-warning/20',
+      glow: 'shadow-warning/20',
       border: 'border-warning/30',
+      hover: 'hover:shadow-warning/20',
     },
     {
       title: 'COMPLETED',
@@ -40,6 +42,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
       color: 'text-accent',
       glow: 'glow-green',
       border: 'border-accent/30',
+      hover: 'hover:glow-green',
     },
     {
       title: 'FAILED',
@@ -48,6 +51,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
       color: 'text-destructive',
       glow: 'glow-red',
       border: 'border-destructive/30',
+      hover: 'hover:glow-red',
     },
     {
       title: 'PULL_REQUESTS',
@@ -56,14 +60,16 @@ export function StatsCards({ stats }: StatsCardsProps) {
       color: 'text-secondary',
       glow: 'glow-magenta',
       border: 'border-secondary/30',
+      hover: 'hover:glow-magenta',
     },
     {
       title: 'PR_MERGED',
       value: stats.prMerged,
       icon: GitMerge,
       color: 'text-primary',
-      glow: 'shadow-lg shadow-primary/20',
+      glow: 'shadow-primary/20',
       border: 'border-primary/30',
+      hover: 'hover:shadow-primary/20',
     },
   ];
 
@@ -74,7 +80,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
         return (
           <Card
             key={card.title}
-            className={`${card.border} bg-card/50 backdrop-blur-sm border transition-all duration-300 hover:scale-105 relative overflow-hidden group ${card.glow}`}
+            className={`${card.border} bg-card/50 backdrop-blur-sm border transition-all duration-300 hover:scale-105 relative overflow-hidden group ${card.glow} ${card.hover}`}
           >
             {/* Corner accent */}
             <div className={`absolute top-0 right-0 w-12 h-12 ${card.color} opacity-10 blur-xl group-hover:opacity-20 transition-opacity`} />
