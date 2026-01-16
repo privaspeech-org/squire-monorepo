@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Play, StopCircle, RotateCw, Trash2, Scroll, Sword, Shield, Skull } from 'lucide-react';
+import { ExternalLink, Play, StopCircle, RotateCw, Trash2, Scroll, Sword, Shield, Skull, Github } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
 
@@ -163,6 +163,18 @@ export function TaskCard({ task, onStart, onStop, onRetry, onDelete }: TaskCardP
             Chronicles
           </Link>
         </Button>
+        {task.prUrl && (
+          <Button
+            size="sm"
+            variant="outline"
+            asChild
+            className="font-display text-xs border-primary/30 hover:border-primary hover:bg-primary/10"
+          >
+            <Link href={task.prUrl} target="_blank" rel="noopener noreferrer">
+              <Github className="h-3.5 w-3.5" />
+            </Link>
+          </Button>
+        )}
         {task.status === 'pending' && onStart && (
           <Button
             size="sm"

@@ -24,6 +24,7 @@ import {
   Shield,
   Skull,
   BookOpen,
+  Github,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -221,6 +222,13 @@ export default function TaskDetailPage({
             <Button variant="outline" size="icon" onClick={fetchTask} className="border-primary/30 hover:border-primary">
               <RefreshCw className="h-4 w-4" />
             </Button>
+            {task.prUrl && (
+              <Button variant="outline" size="icon" asChild className="border-primary/30 hover:border-primary">
+                <Link href={task.prUrl} target="_blank" rel="noopener noreferrer">
+                  <Github className="h-4 w-4" />
+                </Link>
+              </Button>
+            )}
             {task.status === 'pending' && (
               <Button onClick={handleStart} className="btn-golden font-display uppercase tracking-wider">
                 <Play className="h-4 w-4 mr-2" />
