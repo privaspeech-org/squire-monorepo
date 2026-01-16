@@ -4,21 +4,21 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const badgeVariants = cva(
-  'inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+  'inline-flex items-center rounded-sm border px-2.5 py-0.5 text-xs font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
   {
     variants: {
       variant: {
         default:
-          'border-transparent bg-primary text-primary-foreground shadow hover:bg-primary/80',
+          'border-primary/30 bg-primary/20 text-primary shadow-lg shadow-primary/20 hover:bg-primary/30 hover:shadow-primary/30',
         secondary:
-          'border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80',
+          'border-secondary/30 bg-secondary/20 text-secondary shadow-lg shadow-secondary/20 hover:bg-secondary/30 hover:shadow-secondary/30',
         destructive:
-          'border-transparent bg-destructive text-destructive-foreground shadow hover:bg-destructive/80',
-        outline: 'text-foreground',
+          'border-destructive/30 bg-destructive/20 text-destructive shadow-lg shadow-destructive/20 hover:bg-destructive/30 hover:shadow-destructive/30',
+        outline: 'text-foreground border-primary/30',
         success:
-          'border-transparent bg-green-500 text-white shadow hover:bg-green-500/80',
+          'border-accent/30 bg-accent/20 text-accent shadow-lg shadow-accent/20 hover:bg-accent/30 hover:shadow-accent/30',
         warning:
-          'border-transparent bg-yellow-500 text-white shadow hover:bg-yellow-500/80',
+          'border-warning/30 bg-warning/20 text-warning shadow-lg shadow-warning/20 hover:bg-warning/30 hover:shadow-warning/30',
       },
     },
     defaultVariants: {
