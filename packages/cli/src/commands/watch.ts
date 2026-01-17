@@ -2,15 +2,10 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import {
   listTasks,
-  getTask,
-  updateTask,
-  isContainerRunning,
-  getContainerExitCode,
   startTaskContainer,
   canStartNewTask,
   debug,
   info,
-  warn,
   createLogger,
 } from '@squire/core';
 import { getConfig } from '../config.js';
@@ -28,35 +23,8 @@ export const watchCommand = new Command('watch')
     const interval = parseInt(options.interval, 10) * 1000;
 
     const check = async () => {
-      // Update status of running tasks
-      const runningTasks = listTasks('running');
-
-      debug('watch', 'Checking running tasks', { count: runningTasks.length });
-
-      for (const task of runningTasks) {
-        if (!task.containerId) continue;
-
-        const running = await isContainerRunning(task.containerId);
-        if (!running) {
-          const exitCode = await getContainerExitCode(task.containerId);
-          const newStatus = exitCode === 0 ? 'completed' : 'failed';
-          await updateTask(task.id, {
-            status: newStatus,
-            error: exitCode !== 0 ? `Container exited with code ${exitCode}` : undefined,
-            completedAt: new Date().toISOString(),
-          });
-
-          // Get PR URL from task if completed
-          const updated = getTask(task.id);
-          if (newStatus === 'completed' && updated?.prUrl) {
-            info('watch', 'Task completed', { taskId: task.id, prUrl: updated.prUrl });
-            console.log(chalk.green('✓') + ` ${task.id} completed → ${updated.prUrl}`);
-          } else if (newStatus === 'failed') {
-            warn('watch', 'Task failed', { taskId: task.id, exitCode });
-            console.log(chalk.red('✗') + ` ${task.id} failed`);
-          }
-        }
-      }
+      // Read current task status from task files (updated by background monitoring)
+      const tasks = listTasks();
 
       // Auto-start pending tasks if enabled
       if (options.autoStart && config.githubToken) {
@@ -84,7 +52,6 @@ export const watchCommand = new Command('watch')
       }
 
       // Show current status
-      const tasks = listTasks();
       const counts = {
         running: tasks.filter(t => t.status === 'running').length,
         pending: tasks.filter(t => t.status === 'pending').length,
