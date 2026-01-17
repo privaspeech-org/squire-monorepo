@@ -276,6 +276,12 @@ export class KubernetesBackend implements WorkerBackend {
                     name: 'tasks',
                     mountPath: '/tasks',
                   },
+                  // Skills volume (if configured)
+                  ...(this.config.skillsPvcName ? [{
+                    name: 'skills',
+                    mountPath: '/skills',
+                    readOnly: true,
+                  }] : []),
                 ],
               },
             ],
@@ -286,6 +292,14 @@ export class KubernetesBackend implements WorkerBackend {
                   claimName: this.config.tasksPvcName || 'squire-tasks',
                 },
               },
+              // Skills volume (if configured)
+              ...(this.config.skillsPvcName ? [{
+                name: 'skills',
+                persistentVolumeClaim: {
+                  claimName: this.config.skillsPvcName,
+                  readOnly: true,
+                },
+              }] : []),
             ],
           },
         },

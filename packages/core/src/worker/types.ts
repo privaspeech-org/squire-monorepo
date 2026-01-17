@@ -54,6 +54,8 @@ export interface KubernetesBackendConfig {
   serviceAccountName?: string;
   /** Image pull secrets for private registries */
   imagePullSecrets?: string[];
+  /** PVC name containing skills (mounted at /skills, read-only) */
+  skillsPvcName?: string;
   /** Node selector for worker Jobs */
   nodeSelector?: Record<string, string>;
   /** Tolerations for worker Jobs */

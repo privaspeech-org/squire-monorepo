@@ -56,7 +56,12 @@ export async function createBackend(config?: BackendConfig): Promise<WorkerBacke
   switch (backendType) {
     case 'kubernetes': {
       const { createKubernetesBackend } = await import('./kubernetes.js');
-      return createKubernetesBackend(config?.kubernetes);
+      // Merge config with environment variables
+      const k8sConfig = {
+        ...config?.kubernetes,
+        skillsPvcName: config?.kubernetes?.skillsPvcName || process.env.SQUIRE_SKILLS_PVC,
+      };
+      return createKubernetesBackend(k8sConfig);
     }
     case 'docker':
     default: {
