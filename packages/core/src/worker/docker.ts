@@ -304,12 +304,21 @@ export class DockerBackend implements WorkerBackend {
         // Mount tasks directory so container can update task status
         const tasksDir = getTasksDir();
 
+        // Build volume binds
+        const binds = [`${tasksDir}:/tasks:rw`];
+
+        // Mount skills directory if configured
+        if (this.config.skillsDir) {
+          binds.push(`${this.config.skillsDir}:/skills:ro`);
+          debug('docker', 'Mounting skills directory', { skillsDir: this.config.skillsDir });
+        }
+
         // Create container with resource limits
         const container = await this.docker.createContainer({
           Image: image,
           Env: env,
           HostConfig: {
-            Binds: [`${tasksDir}:/tasks:rw`],
+            Binds: binds,
             AutoRemove: false,
             // Resource limits
             Memory: config.memoryLimitMB * 1024 * 1024, // Convert MB to bytes

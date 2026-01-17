@@ -73,6 +73,21 @@ echo "Model: ${MODEL}"
 echo "Prompt: ${PROMPT}"
 echo ""
 
+# Build skill hints if skills are mounted
+SKILL_HINT=""
+if [ -d "/skills" ]; then
+    AVAILABLE_SKILLS=$(ls -1 /skills 2>/dev/null | grep -v README | tr '\n' ', ' | sed 's/,$//')
+    if [ -n "$AVAILABLE_SKILLS" ]; then
+        SKILL_HINT="
+
+## Reference Skills
+Skills are available at /skills/<name>/SKILL.md. Read them when relevant:
+- ${AVAILABLE_SKILLS}
+
+Example: \`cat /skills/react-best-practices/SKILL.md\` for React/Next.js work."
+    fi
+fi
+
 # Build the full prompt with context
 FULL_PROMPT="You are working on the repository ${REPO_NAME}.
 
@@ -85,7 +100,7 @@ ${PROMPT}
 3. Make sure the code compiles/runs without errors (run tests if available)
 4. Write clean, idiomatic code following existing patterns
 5. Commit your changes with a descriptive message
-
+${SKILL_HINT}
 Stay focused on the task. Don't make unrelated changes."
 
 # Run OpenCode with the task

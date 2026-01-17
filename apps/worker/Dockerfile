@@ -37,6 +37,9 @@ RUN chmod +x /entrypoint.sh
 # Copy agent prompt
 COPY agent-prompt.md /agent-prompt.md
 
+# Skills directory (mounted at runtime from host)
+# Mount with: -v /path/to/skills:/skills:ro
+
 # Copy OpenCode config that auto-approves all permissions
 # This is safe because we're in an isolated container
 RUN mkdir -p /root/.config/opencode

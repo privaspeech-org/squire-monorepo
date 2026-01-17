@@ -61,7 +61,12 @@ export async function createBackend(config?: BackendConfig): Promise<WorkerBacke
     case 'docker':
     default: {
       const { createDockerBackend } = await import('./docker.js');
-      return createDockerBackend(config?.docker);
+      // Merge config with environment variables
+      const dockerConfig = {
+        ...config?.docker,
+        skillsDir: config?.docker?.skillsDir || process.env.SQUIRE_SKILLS_DIR,
+      };
+      return createDockerBackend(dockerConfig);
     }
   }
 }

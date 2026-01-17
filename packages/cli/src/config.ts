@@ -8,6 +8,7 @@ export interface SquireConfig {
   model?: string;
   tasksDir?: string;
   workerImage?: string;
+  skillsDir?: string;       // Path to skills directory (mounted at /skills in container)
   maxConcurrent?: number;  // Max parallel tasks (default: 5)
   autoCleanup?: boolean;   // Auto-remove containers on task completion (default: true)
 }
@@ -39,6 +40,7 @@ export function getConfig(): SquireConfig {
     model: process.env.SQUIRE_MODEL || 'opencode/glm-4.7-free',
     tasksDir: process.env.SQUIRE_TASKS_DIR,
     workerImage: process.env.SQUIRE_WORKER_IMAGE || 'squire-worker:latest',
+    skillsDir: process.env.SQUIRE_SKILLS_DIR,
     maxConcurrent: process.env.SQUIRE_MAX_CONCURRENT ? parseInt(process.env.SQUIRE_MAX_CONCURRENT, 10) : 5,
     autoCleanup: process.env.SQUIRE_AUTO_CLEANUP !== 'false',  // Default true
   };
@@ -53,6 +55,7 @@ export function getConfig(): SquireConfig {
         if (fileConfig.model) config.model = fileConfig.model;
         if (fileConfig.tasksDir) config.tasksDir = fileConfig.tasksDir;
         if (fileConfig.workerImage) config.workerImage = fileConfig.workerImage;
+        if (fileConfig.skillsDir) config.skillsDir = fileConfig.skillsDir;
         if (fileConfig.maxConcurrent) config.maxConcurrent = fileConfig.maxConcurrent;
         if (fileConfig.autoCleanup !== undefined) config.autoCleanup = fileConfig.autoCleanup;
         break;

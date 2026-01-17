@@ -83,6 +83,8 @@ export interface DockerBackendConfig {
   socketPath?: string;
   /** Whether to use host networking */
   hostNetwork?: boolean;
+  /** Path to skills directory on host (mounted read-only at /skills in container) */
+  skillsDir?: string;
 }
 
 /**
