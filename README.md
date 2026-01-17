@@ -82,6 +82,7 @@ Squire looks for configuration in these locations (in order):
 | `workerImage` | `SQUIRE_WORKER_IMAGE` | `squire-worker:latest` | Docker/Podman image for worker containers |
 | `maxConcurrent` | `SQUIRE_MAX_CONCURRENT` | `5` | Maximum parallel tasks |
 | `autoCleanup` | `SQUIRE_AUTO_CLEANUP` | `true` | Auto-remove containers on task completion |
+| `containerRuntime` | `SQUIRE_CONTAINER_RUNTIME` | - | Container runtime (e.g., `runsc` for gVisor) |
 
 #### Example Configuration
 
@@ -106,6 +107,39 @@ For Podman, ensure the socket is running:
 ```bash
 systemctl --user start podman.socket
 ```
+
+#### Container Isolation with gVisor
+
+For enhanced security when running untrusted code, Squire supports [gVisor](https://gvisor.dev/) — a container sandbox that intercepts syscalls and provides VM-like isolation with container performance.
+
+**Setup:**
+```bash
+# Run the setup script
+./scripts/setup-gvisor.sh
+
+# Or install manually:
+# 1. Install runsc binary
+# 2. Configure Docker daemon with runsc runtime
+# 3. Restart Docker
+```
+
+**Enable for Squire:**
+```bash
+export SQUIRE_CONTAINER_RUNTIME=runsc
+```
+
+Or in `squire.config.json`:
+```json
+{
+  "containerRuntime": "runsc"
+}
+```
+
+**Why use gVisor?**
+- Workers execute code from arbitrary GitHub repos
+- gVisor intercepts syscalls — container escape CVEs don't work
+- Minimal performance overhead for Squire's use case (short-lived tasks)
+- Defense in depth on top of Docker's isolation
 
 ### Steward Configuration
 

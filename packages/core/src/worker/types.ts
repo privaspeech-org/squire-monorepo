@@ -87,6 +87,8 @@ export interface DockerBackendConfig {
   hostNetwork?: boolean;
   /** Path to skills directory on host (mounted read-only at /skills in container) */
   skillsDir?: string;
+  /** Container runtime to use (e.g., 'runsc' for gVisor sandbox isolation) */
+  runtime?: string;
 }
 
 /**

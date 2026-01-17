@@ -274,6 +274,7 @@ export class DockerBackend implements WorkerBackend {
       cpuLimit: config.cpuLimit,
       memoryLimitMB: config.memoryLimitMB,
       timeoutMinutes: config.timeoutMinutes,
+      runtime: this.config.runtime || 'default',
     });
 
     info('docker', 'Starting task container', {
@@ -324,6 +325,8 @@ export class DockerBackend implements WorkerBackend {
             Memory: config.memoryLimitMB * 1024 * 1024, // Convert MB to bytes
             NanoCpus: config.cpuLimit * 1e9, // Convert cores to nanocpus
             NetworkMode: this.config.hostNetwork ? 'host' : undefined,
+            // Container runtime (e.g., 'runsc' for gVisor isolation)
+            Runtime: this.config.runtime,
           },
           Labels: {
             'squire.task.id': task.id,

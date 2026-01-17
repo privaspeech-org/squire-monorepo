@@ -70,6 +70,7 @@ export async function createBackend(config?: BackendConfig): Promise<WorkerBacke
       const dockerConfig = {
         ...config?.docker,
         skillsDir: config?.docker?.skillsDir || process.env.SQUIRE_SKILLS_DIR,
+        runtime: config?.docker?.runtime || process.env.SQUIRE_CONTAINER_RUNTIME,
       };
       return createDockerBackend(dockerConfig);
     }

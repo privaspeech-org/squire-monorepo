@@ -11,6 +11,7 @@ export interface SquireConfig {
   skillsDir?: string;       // Path to skills directory (mounted at /skills in container)
   maxConcurrent?: number;  // Max parallel tasks (default: 5)
   autoCleanup?: boolean;   // Auto-remove containers on task completion (default: true)
+  containerRuntime?: string; // Container runtime (e.g., 'runsc' for gVisor isolation)
 }
 
 const CONFIG_PATHS = [
@@ -43,6 +44,7 @@ export function getConfig(): SquireConfig {
     skillsDir: process.env.SQUIRE_SKILLS_DIR,
     maxConcurrent: process.env.SQUIRE_MAX_CONCURRENT ? parseInt(process.env.SQUIRE_MAX_CONCURRENT, 10) : 5,
     autoCleanup: process.env.SQUIRE_AUTO_CLEANUP !== 'false',  // Default true
+    containerRuntime: process.env.SQUIRE_CONTAINER_RUNTIME,  // e.g., 'runsc' for gVisor
   };
 
   // Try to load config file
@@ -58,6 +60,7 @@ export function getConfig(): SquireConfig {
         if (fileConfig.skillsDir) config.skillsDir = fileConfig.skillsDir;
         if (fileConfig.maxConcurrent) config.maxConcurrent = fileConfig.maxConcurrent;
         if (fileConfig.autoCleanup !== undefined) config.autoCleanup = fileConfig.autoCleanup;
+        if (fileConfig.containerRuntime) config.containerRuntime = fileConfig.containerRuntime;
         break;
       } catch {
         // Ignore invalid config files
