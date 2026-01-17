@@ -7,6 +7,7 @@
  */
 
 import type { Task, ContainerConfig } from '../types/task.js';
+import type { BackendConfig } from './types.js';
 import { getBackend } from './backend.js';
 
 export interface ContainerOptions {
@@ -16,6 +17,8 @@ export interface ContainerOptions {
   verbose?: boolean;
   workerImage?: string;
   containerConfig?: ContainerConfig;
+  /** Backend configuration (e.g., runtime for gVisor) */
+  backendConfig?: BackendConfig;
 }
 
 /**
@@ -25,7 +28,7 @@ export interface ContainerOptions {
  * @deprecated Use getBackend().startTask() for new code
  */
 export async function startTaskContainer(options: ContainerOptions): Promise<string> {
-  const backend = await getBackend();
+  const backend = await getBackend(options.backendConfig);
   return backend.startTask(options);
 }
 

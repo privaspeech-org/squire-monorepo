@@ -156,6 +156,10 @@ export const webhookCommand = new Command('webhook')
               model: config.model,
               verbose: options.verbose,
               workerImage: config.workerImage,
+              backendConfig: config.containerRuntime ? {
+                type: 'docker',
+                docker: { runtime: config.containerRuntime },
+              } : undefined,
             });
             console.log(chalk.green('✓ Review fix task started'));
           } catch (error) {
@@ -214,6 +218,10 @@ Fix the failing tests or build issues and commit the changes.`;
               model: config.model,
               verbose: options.verbose,
               workerImage: config.workerImage,
+              backendConfig: config.containerRuntime ? {
+                type: 'docker',
+                docker: { runtime: config.containerRuntime },
+              } : undefined,
             });
             console.log(chalk.green('✓ Fix task started'));
           } catch (error) {

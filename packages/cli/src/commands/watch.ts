@@ -76,6 +76,10 @@ export const watchCommand = new Command('watch')
               model: config.model,
               verbose: options.verbose,
               workerImage: config.workerImage,
+              backendConfig: config.containerRuntime ? {
+                type: 'docker',
+                docker: { runtime: config.containerRuntime },
+              } : undefined,
             });
           } catch (error) {
             console.error(chalk.red(`Failed to start ${task.id}:`), error);

@@ -74,6 +74,10 @@ export const followupCommand = new Command('followup')
         model: options.model || config.model,
         verbose: options.verbose,
         workerImage: config.workerImage,
+        backendConfig: config.containerRuntime ? {
+          type: 'docker',
+          docker: { runtime: config.containerRuntime },
+        } : undefined,
       });
 
       info('cli', 'Follow-up task started', {
