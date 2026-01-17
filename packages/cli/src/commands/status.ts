@@ -2,12 +2,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import {
   getTask,
-  updateTask,
-  isContainerRunning,
-  getContainerExitCode,
-  removeContainer,
 } from '@squire/core';
-import { getConfig } from '../config.js';
 
 export const statusCommand = new Command('status')
   .description('Get status of a task')
@@ -18,51 +13,6 @@ export const statusCommand = new Command('status')
     if (!task) {
       console.error(chalk.red(`Task ${id} not found`));
       process.exit(1);
-    }
-
-    // If task is marked as running, check if container is still alive
-    if (task.status === 'running' && task.containerId) {
-      const running = await isContainerRunning(task.containerId);
-
-      if (!running) {
-        // Container finished - re-read task file as container may have updated it
-        const updatedTask = getTask(id);
-        if (updatedTask) {
-          Object.assign(task, updatedTask);
-        }
-
-        // If container updated the status, use that. Otherwise check exit code.
-        if (task.status === 'running') {
-          const exitCode = await getContainerExitCode(task.containerId);
-
-          if (exitCode === 0) {
-            await updateTask(id, {
-              status: 'completed',
-              completedAt: new Date().toISOString(),
-            });
-            task.status = 'completed';
-          } else {
-            await updateTask(id, {
-              status: 'failed',
-              error: `Container exited with code ${exitCode}`,
-              completedAt: new Date().toISOString(),
-            });
-            task.status = 'failed';
-            task.error = `Container exited with code ${exitCode}`;
-          }
-
-          // Auto-cleanup container if enabled and task is done
-          const config = getConfig();
-          if (config.autoCleanup && (task.status === 'completed' || task.status === 'failed')) {
-            try {
-              await removeContainer(task.containerId);
-              console.log(chalk.dim(`Container ${task.containerId.slice(0, 12)} removed (auto-cleanup)`));
-            } catch {
-              // Ignore cleanup errors - container might already be removed
-            }
-          }
-        }
-      }
     }
 
     // Display status
