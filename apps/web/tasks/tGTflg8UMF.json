@@ -1,0 +1,13 @@
+{
+  "id": "tGTflg8UMF",
+  "repo": "https://github.com/privaspeech-org/squire-monorepo",
+  "prompt": "Add tests",
+  "branch": "squire/tGTflg8UMF",
+  "baseBranch": "auto",
+  "status": "completed",
+  "createdAt": "2026-01-16T16:52:18.450Z",
+  "startedAt": "2026-01-16T16:52:21.247Z",
+  "containerId": "c2c50b1f27aba83d371a6dbf5618abe0532b0528443ccbcf19ae31fb7a00aa72",
+  "retryCount": 0,
+  "completedAt": "2026-01-16T18:09:03.990Z"
+}

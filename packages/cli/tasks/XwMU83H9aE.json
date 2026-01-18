@@ -1,0 +1,9 @@
+{
+  "id": "XwMU83H9aE",
+  "repo": "privaspeech-org/squire-monorepo",
+  "prompt": "Add a Features section to README.md after the Overview section. List: 1) Container isolation for safe code execution, 2) Automatic PR creation, 3) Docker and Podman support, 4) Configurable AI models",
+  "branch": "squire/XwMU83H9aE",
+  "baseBranch": "auto",
+  "status": "pending",
+  "createdAt": "2026-01-15T19:10:10.619Z"
+}

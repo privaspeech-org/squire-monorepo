@@ -1,0 +1,13 @@
+{
+  "id": "bPLAyKK-1c",
+  "repo": "https://github.com/privaspeech-org/squire-monorepo",
+  "prompt": "add tests",
+  "branch": "squire/bPLAyKK-1c",
+  "baseBranch": "auto",
+  "status": "completed",
+  "createdAt": "2026-01-16T18:05:19.964Z",
+  "startedAt": "2026-01-16T18:05:22.674Z",
+  "containerId": "9e7a42bc6b8aecdb5015e2823f935aa3abe85ebec573635e1b192c9f5591fffe",
+  "retryCount": 0,
+  "completedAt": "2026-01-16T20:44:10.499Z"
+}

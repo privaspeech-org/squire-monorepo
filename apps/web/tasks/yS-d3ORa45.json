@@ -1,0 +1,13 @@
+{
+  "id": "yS-d3ORa45",
+  "repo": "https://github.com/privaspeech-org/squire-monorepo",
+  "prompt": "align the number in the tabs. currently the \"all quests 0\" is misaligned, for all of the tabs",
+  "branch": "squire/yS-d3ORa45",
+  "baseBranch": "auto",
+  "status": "completed",
+  "createdAt": "2026-01-16T16:47:51.036Z",
+  "startedAt": "2026-01-16T16:47:56.121Z",
+  "containerId": "5f47b23a5fcd2e46b78f31e0f3b35ea3a3ee5c655d245b05139baf7867562787",
+  "retryCount": 0,
+  "completedAt": "2026-01-16T17:01:00.775Z"
+}
