@@ -2,9 +2,6 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import {
   listTasks,
-  updateTask,
-  isContainerRunning,
-  getContainerExitCode,
 } from '@squire/core';
 
 export const psCommand = new Command('ps')
@@ -19,33 +16,6 @@ export const psCommand = new Command('ps')
 
     if (tasks.length === 0) {
       console.log(chalk.dim(options.all ? 'No tasks.' : 'No running tasks.'));
-      return;
-    }
-
-    // Check actual container status for running tasks
-    for (const task of tasks) {
-      if (task.status === 'running' && task.containerId) {
-        const running = await isContainerRunning(task.containerId);
-        if (!running) {
-          const exitCode = await getContainerExitCode(task.containerId);
-          const newStatus = exitCode === 0 ? 'completed' : 'failed';
-          await updateTask(task.id, {
-            status: newStatus,
-            error: exitCode !== 0 ? `Container exited with code ${exitCode}` : undefined,
-            completedAt: new Date().toISOString(),
-          });
-          task.status = newStatus;
-        }
-      }
-    }
-
-    // Re-filter if we only want running
-    if (!options.all) {
-      tasks = tasks.filter(t => t.status === 'running' || t.status === 'pending');
-    }
-
-    if (tasks.length === 0) {
-      console.log(chalk.dim('No running tasks.'));
       return;
     }
 
