@@ -110,6 +110,8 @@ systemctl --user start podman.socket
 
 #### Container Isolation with gVisor
 
+> **Note:** gVisor is optional but recommended for security. Squire works without gVisor, but using it provides additional isolation when executing code from arbitrary repositories.
+
 For enhanced security when running untrusted code, Squire supports [gVisor](https://gvisor.dev/) — a container sandbox that intercepts syscalls and provides VM-like isolation with container performance.
 
 **Setup:**
