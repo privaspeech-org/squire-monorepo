@@ -48,6 +48,12 @@ echo "=== Cloning ${REPO_NAME} ==="
 gh repo clone "${REPO_NAME}" repo -- --depth=50
 cd repo
 
+# Source build detection utilities
+source /build-detection.sh
+
+# Detect and log build system (Phase 1: logging only)
+log_build_system "."
+
 # Auto-detect default branch if not specified or set to "auto"
 if [ -z "${BASE_BRANCH}" ] || [ "${BASE_BRANCH}" = "auto" ]; then
     BASE_BRANCH=$(gh repo view "${REPO_NAME}" --json defaultBranchRef -q '.defaultBranchRef.name' 2>/dev/null || echo "main")

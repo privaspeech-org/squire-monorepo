@@ -30,9 +30,10 @@ RUN curl -fsSL "https://github.com/anomalyco/opencode/releases/download/v${OPENC
 # Create workspace directory
 WORKDIR /workspace
 
-# Copy entrypoint script
+# Copy entrypoint and build detection scripts
 COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY build-detection.sh /build-detection.sh
+RUN chmod +x /entrypoint.sh /build-detection.sh
 
 # Copy agent prompt
 COPY agent-prompt.md /agent-prompt.md
